@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>에코소팅 - 대전광역시 분리배출 가이드</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f9fafb;
+            padding-bottom: 80px;
+        }
+        
+        .container {
+            max-width: 448px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .header-content {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .back-btn {
+            color: #2563eb;
+            font-weight: 500;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            color: #6b7280;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .location:hover {
+            color: #2563eb;
+        }
+        
+        .main-content {
+            padding: 16px;
+        }
+        
+        .earth-card {
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 24px;
+        }
+        
+        .earth-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .earth-level {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .earth-points {
+            text-align: right;
+        }
+        
+        .points {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .streak {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .earth-icon {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        
+        .earth-emoji {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            height: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 16px;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .card-title {
+            font-weight: 600;
+        }
+        
+        .disposal-info {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .disposal-allowed {
+            background: #f0fdf4;
+        }
+        
+        .disposal-forbidden {
+            background: #fef2f2;
+        }
+        
+        .disposal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .disposal-allowed .disposal-header {
+            color: #166534;
+        }
+        
+        .disposal-forbidden .disposal-header {
+            color: #dc2626;
+        }
+        
+        .camera-btn {
+            width: 100%;
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            margin-bottom: 16px;
+        }
+        
+        .camera-btn:hover {
+            background: linear-gradient(to right, #059669, #047857);
+        }
+        
+        .quick-menu {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .quick-btn {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+        
+        .quick-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .bottom-nav {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        
+        .bottom-nav-content {
+            max-width: 448px;
+            margin: 0 auto;
+            padding: 8px 16px;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+        
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            border-radius: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .nav-btn.active {
+            color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .nav-label {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .camera-container {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .camera-placeholder {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .camera-video {
+            width: 100%;
+            height: 256px;
+            background: black;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-section {
+            background: #eff6ff;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .demo-btn {
+            width: 100%;
+            background: white;
+            border: 1px solid #bfdbfe;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        
+        .demo-btn:hover {
+            background: #dbeafe;
+        }
+        
+        .recognition-result {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px solid #bbf7d0;
+            margin-top: 16px;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #166534;
+        }
+        
+        .confidence-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .disposal-item {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .disposal-method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        
+        .method-recycle {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .method-general {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .tips-section {
+            background: #fefce8;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        
+        .tips-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #92400e;
+        }
+        
+        .points-earned {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #10b981;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            background: #10b981;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        
+        .btn-primary:hover {
+            background: #059669;
+        }
+        
+        .schedule-grid {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .schedule-recycle {
+            background: #f0fdf4;
+        }
+        
+        .schedule-general {
+            background: #f9fafb;
+        }
+        
+        .schedule-food {
+            background: #fefce8;
+        }
+        
+        .schedule-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .schedule-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .icon-recycle {
+            background: #10b981;
+        }
+        
+        .icon-general {
+            background: #6b7280;
+        }
+        
+        .icon-food {
+            background: #d97706;
+        }
+        
+        .guide-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+        
+        .guide-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .guide-plastic {
+            color: #059669;
+        }
+        
+        .guide-paper {
+            color: #1d4ed8;
+        }
+        
+        .guide-can {
+            color: #6b7280;
+        }
+        
+        .guide-list {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .guide-list li {
+            margin-bottom: 4px;
+        }
+        
+        .location-selector {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        .location-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        
+        .close-btn:hover {
+            color: #374151;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        
+        .location-info {
+            background: #eff6ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        
+        .location-info h3 {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .location-info-list {
+            font-size: 14px;
+        }
+        
+        .location-info-list p {
+            margin-bottom: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        .icon-wrapper {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+        
+        // Lucide 아이콘 컴포넌트들을 수동으로 정의
+        const Camera = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+            </svg>
+        );
+
+        const MapPin = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        );
+
+        const Calendar = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        );
+
+        const Clock = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+            </svg>
+        );
+
+        const Leaf = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 8c0 7-7 13-7 13s-7-6-7-13a7 7 0 1 1 14 0z"/>
+                <path d="M12 11c0-1.5 1.5-3 1.5-3s1.5 1.5 1.5 3-1.5 3-1.5 3-1.5-1.5-1.5-3z"/>
+            </svg>
+        );
+
+        const Star = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+            </svg>
+        );
+
+        const Info = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+
+        const CheckCircle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22,4 12,14.01 9,11.01"/>
+            </svg>
+        );
+
+        const AlertTriangle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        );
+
+        const Recycle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/>
+                <path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775L14.5 4"/>
+                <path d="M14 16.5L11.5 14 14 11.5"/>
+                <path d="M8.5 9.5L11 7 8.5 4.5"/>
+            </svg>
+        );
+
+        const ArrowLeft = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12,19 5,12 12,5"/>
+            </svg>
+        );
+
+        const EcoSortApp = () => {
+            const [currentView, setCurrentView] = useState('home');
+            const [selectedDistrict, setSelectedDistrict] = useState('서구');
+            const [selectedDong, setSelectedDong] = useState('도마동');
+            const [earthLevel, setEarthLevel] = useState(1);
+            const [ecoPoints, setEcoPoints] = useState(120);
+            const [dailyStreak, setDailyStreak] = useState(7);
+            const [cameraActive, setCameraActive] = useState(false);
+            const [recognitionResult, setRecognitionResult] = useState(null);
+            const [showLocationSelector, setShowLocationSelector] = useState(false);
+            const videoRef = useRef(null);
+
+            // 대전광역시 전체 지역별 분리배출 정보
+            const locationDatabase = {
+                "동구": {
+                    dongs: ["가양동", "대별동", "삼성동", "성남동", "소제동", "신인동", "용운동", "용전동", "장동", "중앙동", "판암동", "홍도동", "효동"],
+                    schedule: {
+                        general: "일~금요일 20시 이후",
+                        recycle: "화, 목, 토요일",
+                        food: "일~금요일 20시 이후"
+                    },
+                    rules: {
+                        noDisposal: "토요일은 재활용품만 배출 가능",
+                        location: "지정된 배출장소",
+                        contact: "동구청 환경위생과 042-251-4364"
+                    }
+                },
+                "중구": {
+                    dongs: ["대사동", "대흥동", "목동", "문창동", "부사동", "산성동", "석교동", "용두동", "유천동", "은행동", "중촌동", "침산동", "태평동"],
+                    schedule: {
+                        general: "일~목요일 18시 이후",
+                        recycle: "월, 수, 금요일",
+                        food: "일~목요일 18시 이후"
+                    },
+                    rules: {
+                        noDisposal: "금, 토, 일요일은 일반쓰레기 배출 금지",
+                        location: "문전배출 원칙",
+                        contact: "중구청 청소행정과 042-606-6234"
+                    }
+                },
+                "서구": {
+                    dongs: ["가수원동", "가장동", "갈마동", "괴정동", "내동", "도마동", "둔산동", "만년동", "매노동", "복수동", "변동", "용문동", "우명동", "월평동", "장안동", "정림동", "평촌동"],
+                    schedule: {
+                        general: "일~목요일 18시 이후",
+                        recycle: "화, 목요일",
+                        food: "일~목요일 18시 이후"
+                    },
+                    rules: {
+                        noDisposal: "금, 토요일은 모든 쓰레기 배출 금지",
+                        location: "내 집 앞 문전배출",
+                        contact: "서구청 자원순환과 042-288-3574"
+                    }
+                },
+                "유성구": {
+                    dongs: ["갑동", "관평동", "구성동", "궁동", "노은동", "상대동", "신성동", "어은동", "온천동", "원신흥동", "자운동", "장대동", "전민동", "지족동", "탑립동", "학하동"],
+                    schedule: {
+                        general: "월~금요일 19시 이후",
+                        recycle: "월, 수, 토요일",
+                        food: "월~금요일 19시 이후"
+                    },
+                    rules: {
+                        noDisposal: "토요일은 재활용품만, 일요일은 모든 쓰레기 배출 금지",
+                        location: "공동주택은 지정장소, 단독주택은 문전배출",
+                        contact: "유성구청 자원순환과 042-611-2174"
+                    }
+                },
+                "대덕구": {
+                    dongs: ["갈전동", "대화동", "덕암동", "목상동", "비래동", "석봉동", "송촌동", "신탄진동", "오정동", "와동", "읍내동", "장동", "중리동", "평촌동"],
+                    schedule: {
+                        general: "월~금요일 20시 이후",
+                        recycle: "월, 목요일",
+                        food: "월~금요일 20시 이후"
+                    },
+                    rules: {
+                        noDisposal: "토, 일요일은 모든 쓰레기 배출 금지",
+                        location: "지정된 수거장소",
+                        contact: "대덕구청 환경과 042-608-6924"
+                    }
+                }
+            };
+
+            const getCurrentLocationData = () => {
+                return locationDatabase[selectedDistrict];
+            };
+
+            // 배달용기 인식 시뮬레이션 데이터
+            const deliveryContainers = {
+                "치킨박스": {
+                    materials: ["종이박스", "기름때", "플라스틱 소스통"],
+                    disposal: [
+                        { item: "종이박스 (기름 묻음)", method: "일반쓰레기", reason: "기름때가 묻어 재활용 불가" },
+                        { item: "플라스틱 소스통", method: "플라스틱 재활용", reason: "깨끗이 씻은 후 분리배출" },
+                        { item: "포크/나이프", method: "플라스틱 재활용", reason: "일회용품도 깨끗하면 재활용 가능" }
+                    ],
+                    tips: "기름기가 많이 묻은 종이는 재활용이 어려워요. 소스통은 반드시 깨끗이 씻어주세요!"
+                },
+                "중국집 용기": {
+                    materials: ["플라스틱 용기", "알루미늄 뚜껑", "비닐봉지"],
+                    disposal: [
+                        { item: "검은 플라스틱 용기", method: "일반쓰레기", reason: "검은색 플라스틱은 재활용 불가" },
+                        { item: "알루미늄 뚜껑", method: "캔류 재활용", reason: "깨끗이 씻은 후 분리배출" },
+                        { item: "비닐봉지", method: "비닐류 재활용", reason: "음식물 제거 후 분리배출" }
+                    ],
+                    tips: "검은색 플라스틱은 재활용이 어려워요. 투명하거나 흰색 용기를 선택하는 것이 환경에 좋아요!"
+                },
+                "피자박스": {
+                    materials: ["종이박스", "기름때", "치즈 부스러기"],
+                    disposal: [
+                        { item: "기름 묻지 않은 윗부분", method: "종이류 재활용", reason: "깨끗한 부분은 재활용 가능" },
+                        { item: "기름 묻은 아랫부분", method: "일반쓰레기", reason: "기름때로 인한 재활용 불가" }
+                    ],
+                    tips: "피자박스는 깨끗한 부분과 더러운 부분을 나누어 배출하세요!"
+                }
+            };
+
+            const startCamera = async () => {
+                setCameraActive(true);
+                setRecognitionResult(null);
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                } catch (err) {
+                    console.log("카메라 접근 실패, 시뮬레이션 모드로 진행");
+                }
+            };
+
+            const stopCamera = () => {
+                setCameraActive(false);
+                if (videoRef.current && videoRef.current.srcObject) {
+                    const tracks = videoRef.current.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                }
+            };
+
+            const simulateRecognition = (itemType) => {
+                const result = deliveryContainers[itemType];
+                setRecognitionResult({
+                    item: itemType,
+                    confidence: 0.92,
+                    ...result
+                });
+                stopCamera();
+                setEcoPoints(prev => prev + 10);
+                
+                // 레벨업 체크
+                if (ecoPoints + 10 >= earthLevel * 100) {
+                    setEarthLevel(prev => prev + 1);
+                }
+            };
+
+            const getTodayDisposal = () => {
+                const today = new Date();
+                const dayOfWeek = today.getDay(); // 0: 일요일, 1: 월요일, ...
+                const days = ['일', '월', '화', '수', '목', '금', '토'];
+                const currentDay = days[dayOfWeek];
+                
+                // 구별 배출 규칙 적용
+                if (selectedDistrict === "서구") {
+                    if (dayOfWeek === 5 || dayOfWeek === 6) { // 금, 토
+                        return { canDispose: false, message: "금, 토요일은 모든 쓰레기 배출 금지일입니다" };
+                    }
+                    const canRecycle = dayOfWeek === 2 || dayOfWeek === 4; // 화, 목
+                    return { 
+                        canDispose: true, 
+                        currentDay,
+                        canRecycle,
+                        message: canRecycle ? "오늘은 재활용품 배출 가능일입니다!" : "오늘은 일반/음식물쓰레기 배출 가능일입니다"
+                    };
+                }
+                
+                return { canDispose: true, message: "배출 가능일입니다" };
+            };
+
+            const renderHeader = () => (
+                <div className="header">
+                    <div className="header-content">
+                        {currentView !== 'home' && (
+                            <button 
+                                onClick={() => setCurrentView('home')} 
+                                className="back-btn"
+                            >
+                                <ArrowLeft />
+                                뒤로
+                            </button>
+                        )}
+                        
+                        <div className="logo">
+                            <Leaf />
+                            에코소팅
+                        </div>
+                        
+                        <button 
+                            onClick={() => setShowLocationSelector(true)} 
+                            className="location"
+                        >
+                            <MapPin />
+                            {selectedDistrict} {selectedDong}
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const renderLocationSelector = () => (
+                <div className="location-selector">
+                    <div className="location-modal">
+                        <div className="modal-header">
+                            <h2 style={{fontSize: '20px', fontWeight: 'bold'}}>지역 설정</h2>
+                            <button
+                                onClick={() => setShowLocationSelector(false)}
+                                className="close-btn"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div style={{marginBottom: '16px'}}>
+                            <div className="form-group">
+                                <label className="form-label">구 선택</label>
+                                <select
+                                    value={selectedDistrict}
+                                    onChange={(e) => {
+                                        setSelectedDistrict(e.target.value);
+                                        setSelectedDong(locationDatabase[e.target.value].dongs[0]);
+                                    }}
+                                    className="form-select"
+                                >
+                                    {Object.keys(locationDatabase).map(district => (
+                                        <option key={district} value={district}>{district}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label className="form-label">동 선택</label>
+                                <select
+                                    value={selectedDong}
+                                    onChange={(e) => setSelectedDong(e.target.value)}
+                                    className="form-select"
+                                >
+                                    {locationDatabase[selectedDistrict].dongs.map(dong => (
+                                        <option key={dong} value={dong}>{dong}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div className="location-info">
+                            <h3>선택된 지역의 배출 정보</h3>
+                            <div className="location-info-list">
+                                <p>• 일반쓰레기: {getCurrentLocationData().schedule.general}</p>
+                                <p>• 재활용품: {getCurrentLocationData().schedule.recycle}</p>
+                                <p>• 음식물쓰레기: {getCurrentLocationData().schedule.food}</p>
+                                <p>• 특이사항: {getCurrentLocationData().rules.noDisposal}</p>
+                                <p>• 배출장소: {getCurrentLocationData().rules.location}</p>
+                                <p>• 문의전화: {getCurrentLocationData().rules.contact}</p>
+                            </div>
+                        </div>
+                        
+                        <button 
+                            className="btn-primary"
+                            onClick={() => setShowLocationSelector(false)}
+                        >
+                            완료
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const renderHomeView = () => {
+                const disposalInfo = getTodayDisposal();
+                const progress = (ecoPoints % (earthLevel * 100)) / (earthLevel * 100) * 100;
+
+                return (
+                    <div className="main-content">
+                        {/* 지구 레벨 카드 */}
+                        <div className="earth-card">
+                            <div className="earth-header">
+                                <div>
+                                    <div className="earth-level">레벨 {earthLevel}</div>
+                                    <div style={{fontSize: '14px', opacity: 0.9}}>지구지킴이</div>
+                                </div>
+                                <div className="earth-points">
+                                    <div className="points">{ecoPoints}</div>
+                                    <div className="streak">{dailyStreak}일 연속</div>
+                                </div>
+                            </div>
+                            
+                            <div className="earth-icon">
+                                <div className="earth-emoji">🌍</div>
+                            </div>
+                            
+                            <div className="progress-bar">
+                                <div className="progress-fill" style={{width: `${progress}%`}}></div>
+                            </div>
+                            <div className="progress-text">
+                                다음 레벨까지 {(earthLevel * 100) - (ecoPoints % (earthLevel * 100))}점
+                            </div>
+                        </div>
+
+                        {/* 오늘 배출 정보 */}
+                        <div className="card">
+                            <div className="card-header">
+                                <Calendar />
+                                <span className="card-title">오늘 배출 정보</span>
+                            </div>
+                            <div className={`disposal-info ${disposalInfo.canDispose ? 'disposal-allowed' : 'disposal-forbidden'}`}>
+                                <div className="disposal-header">
+                                    {disposalInfo.canDispose ? <CheckCircle /> : <AlertTriangle />}
+                                    <span>{disposalInfo.message}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 카메라 버튼 */}
+                        <button 
+                            className="camera-btn"
+                            onClick={() => setCurrentView('camera')}
+                        >
+                            <Camera />
+                            배달용기 분리배출 가이드
+                        </button>
+
+                        {/* 빠른 메뉴 */}
+                        <div className="quick-menu">
+                            <div className="quick-btn" onClick={() => setCurrentView('schedule')}>
+                                <Clock />
+                                <span>배출 일정</span>
+                            </div>
+                            <div className="quick-btn" onClick={() => setCurrentView('guide')}>
+                                <Info />
+                                <span>분리배출 가이드</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderCameraView = () => (
+                <div className="main-content">
+                    <div className="camera-container">
+                        {cameraActive ? (
+                            <div className="camera-video">
+                                <video 
+                                    ref={videoRef} 
+                                    autoPlay 
+                                    playsInline 
+                                    style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                />
+                            </div>
+                        ) : (
+                            <div className="camera-placeholder">
+                                <Camera style={{width: '48px', height: '48px', color: '#9ca3af'}} />
+                                <p style={{color: '#6b7280'}}>카메라로 배달용기를 인식해보세요</p>
+                            </div>
+                        )}
+                        
+                        <button 
+                            className={cameraActive ? "btn-secondary" : "camera-btn"}
+                            onClick={cameraActive ? stopCamera : startCamera}
+                        >
+                            {cameraActive ? "카메라 종료" : "카메라 시작"}
+                        </button>
+                    </div>
+
+                    {/* 데모 섹션 */}
+                    <div className="demo-section">
+                        <h3 style={{marginBottom: '12px', fontSize: '16px', fontWeight: '600'}}>
+                            🎯 데모 체험하기
+                        </h3>
+                        <p style={{marginBottom: '12px', fontSize: '14px', color: '#6b7280'}}>
+                            아래 버튼을 눌러 AI 인식 결과를 체험해보세요
+                        </p>
+                        
+                        <button 
+                            className="demo-btn"
+                            onClick={() => simulateRecognition('치킨박스')}
+                        >
+                            🍗 치킨박스 인식하기
+                        </button>
+                        
+                        <button 
+                            className="demo-btn"
+                            onClick={() => simulateRecognition('중국집 용기')}
+                        >
+                            🥡 중국집 배달용기 인식하기
+                        </button>
+
+                        <button 
+                            className="demo-btn"
+                            onClick={() => simulateRecognition('피자박스')}
+                        >
+                            🍕 피자박스 인식하기
+                        </button>
+                    </div>
+
+                    {/* 인식 결과 */}
+                    {recognitionResult && (
+                        <div className="recognition-result">
+                            <div className="result-header">
+                                <CheckCircle />
+                                <span style={{fontWeight: '600'}}>"{recognitionResult.item}" 인식 완료</span>
+                                <span className="confidence-badge">
+                                    {Math.round(recognitionResult.confidence * 100)}% 정확도
+                                </span>
+                            </div>
+                            
+                            <div style={{marginBottom: '12px'}}>
+                                <h4 style={{fontSize: '14px', fontWeight: '600', marginBottom: '8px'}}>
+                                    분리배출 방법:
+                                </h4>
+                                {recognitionResult.disposal.map((item, index) => (
+                                    <div key={index} className="disposal-item">
+                                        <div style={{fontWeight: '500', marginBottom: '4px'}}>
+                                            {item.item}
+                                        </div>
+                                        <div className={`disposal-method ${item.method.includes('재활용') ? 'method-recycle' : 'method-general'}`}>
+                                            {item.method}
+                                        </div>
+                                        <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>
+                                            {item.reason}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="tips-section">
+                                <div className="tips-content">
+                                    <Info style={{width: '16px', height: '16px', flexShrink: 0}} />
+                                    <span style={{fontSize: '14px'}}>
+                                        {recognitionResult.tips}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="points-earned">
+                                <Star />
+                                <span>+10 에코포인트 획득!</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+
+            const renderScheduleView = () => {
+                const locationData = getCurrentLocationData();
+                
+                return (
+                    <div className="main-content">
+                        <div className="card">
+                            <div className="card-header">
+                                <Calendar />
+                                <span className="card-title">{selectedDistrict} {selectedDong} 배출 일정</span>
+                            </div>
+                            
+                            <div className="schedule-grid">
+                                <div className="schedule-item schedule-general">
+                                    <div className="schedule-info">
+                                        <div className="schedule-icon icon-general"></div>
+                                        <div>
+                                            <div style={{fontWeight: '600'}}>일반쓰레기</div>
+                                            <div style={{fontSize: '14px', color: '#6b7280'}}>
+                                                {locationData.schedule.general}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="schedule-item schedule-recycle">
+                                    <div className="schedule-info">
+                                        <div className="schedule-icon icon-recycle"></div>
+                                        <div>
+                                            <div style={{fontWeight: '600'}}>재활용품</div>
+                                            <div style={{fontSize: '14px', color: '#6b7280'}}>
+                                                {locationData.schedule.recycle}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="schedule-item schedule-food">
+                                    <div className="schedule-info">
+                                        <div className="schedule-icon icon-food"></div>
+                                        <div>
+                                            <div style={{fontWeight: '600'}}>음식물쓰레기</div>
+                                            <div style={{fontSize: '14px', color: '#6b7280'}}>
+                                                {locationData.schedule.food}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style={{background: '#fef2f2', padding: '12px', borderRadius: '8px', marginTop: '16px'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626'}}>
+                                    <AlertTriangle style={{width: '16px', height: '16px'}} />
+                                    <span style={{fontSize: '14px', fontWeight: '500'}}>
+                                        {locationData.rules.noDisposal}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div style={{background: '#eff6ff', padding: '12px', borderRadius: '8px', marginTop: '8px'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#1d4ed8'}}>
+                                    <Info style={{width: '16px', height: '16px'}} />
+                                    <div style={{fontSize: '14px'}}>
+                                        <div>배출장소: {locationData.rules.location}</div>
+                                        <div>문의전화: {locationData.rules.contact}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderGuideView = () => (
+                <div className="main-content">
+                    <div className="guide-item">
+                        <div className="guide-title guide-plastic">
+                            <Recycle style={{width: '20px', height: '20px', display: 'inline', marginRight: '8px'}} />
+                            플라스틱류
+                        </div>
+                        <ul className="guide-list">
+                            <li>• 음료수병, 생수병 (뚜껑 분리)</li>
+                            <li>• 요구르트병, 우유병</li>
+                            <li>• 샴푸, 세제 용기 (내용물 완전 제거)</li>
+                            <li>• 투명한 일회용 용기</li>
+                            <li>❌ 검은색 플라스틱, 스티로폼</li>
+                        </ul>
+                    </div>
+                    
+                    <div className="guide-item">
+                        <div className="guide-title guide-paper">
+                            📄 종이류
+                        </div>
+                        <ul className="guide-list">
+                            <li>• 신문지, 책, 잡지</li>
+                            <li>• 골판지 (테이프, 철핀 제거)</li>
+                            <li>• 우유팩, 음료수팩 (내부 씻어서)</li>
+                            <li>❌ 기름 묻은 종이, 코팅지</li>
+                        </ul>
+                    </div>
+                    
+                    <div className="guide-item">
+                        <div className="guide-title guide-can">
+                            🥫 캔류
+                        </div>
+                        <ul className="guide-list">
+                            <li>• 음료수캔, 맥주캔</li>
+                            <li>• 참치캔, 과일캔 (내용물 제거)</li>
+                            <li>• 알루미늄 호일</li>
+                            <li>❌ 페인트통, 살충제통</li>
+                        </ul>
+                    </div>
+                </div>
+            );
+
+            const renderBottomNav = () => (
+                <div className="bottom-nav">
+                    <div className="bottom-nav-content">
+                        <div className="nav-grid">
+                            <button 
+                                className={`nav-btn ${currentView === 'home' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('home')}
+                            >
+                                <div className="icon-wrapper">
+                                    <Leaf />
+                                </div>
+                                <span className="nav-label">홈</span>
+                            </button>
+                            
+                            <button 
+                                className={`nav-btn ${currentView === 'camera' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('camera')}
+                            >
+                                <div className="icon-wrapper">
+                                    <Camera />
+                                </div>
+                                <span className="nav-label">인식</span>
+                            </button>
+                            
+                            <button 
+                                className={`nav-btn ${currentView === 'schedule' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('schedule')}
+                            >
+                                <div className="icon-wrapper">
+                                    <Calendar />
+                                </div>
+                                <span className="nav-label">일정</span>
+                            </button>
+                            
+                            <button 
+                                className={`nav-btn ${currentView === 'guide' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('guide')}
+                            >
+                                <div className="icon-wrapper">
+                                    <Info />
+                                </div>
+                                <span className="nav-label">가이드</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderCurrentView = () => {
+                switch (currentView) {
+                    case 'camera':
+                        return renderCameraView();
+                    case 'schedule':
+                        return renderScheduleView();
+                    case 'guide':
+                        return renderGuideView();
+                    default:
+                        return renderHomeView();
+                }
+            };
+
+            return (
+                <div className="container">
+                    {renderHeader()}
+                    {renderCurrentView()}
+                    {renderBottomNav()}
+                    {showLocationSelector && renderLocationSelector()}
+                </div>
+            );
+        };
+
+        // React 앱 렌더링
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<EcoSortApp />);
+    </script>
+</body>
+</html>
