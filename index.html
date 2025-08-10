@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>에코소팅 - 대전광역시 분리배출 가이드</title>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- TensorFlow.js + COCO-SSD -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f9fafb;padding-bottom:80px}
+    .container{max-width:448px;margin:0 auto;min-height:100vh}
+    .header{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1);border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
+    .header-content{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+    .back-btn{color:#2563eb;font-weight:500;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px}
+    .logo{display:flex;align-items:center;gap:8px;font-weight:bold;font-size:18px}
+    .location{display:flex;align-items:center;gap:4px;font-size:14px;color:#6b7280;background:none;border:none;cursor:pointer}
+    .location:hover{color:#2563eb}
+    .main-content{padding:16px}
+    .earth-card{background:linear-gradient(135deg,#10b981,#3b82f6);border-radius:16px;padding:24px;color:#fff;margin-bottom:24px}
+    .earth-header{display:flex;justify-content:space-between;margin-bottom:16px}
+    .earth-level{font-size:20px;font-weight:bold}
+    .earth-points{text-align:right}
+    .points{font-size:24px;font-weight:bold}
+    .streak{font-size:14px;opacity:.9}
+    .earth-icon{display:flex;justify-content:center;margin-bottom:16px}
+    .earth-emoji{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px}
+    .progress-bar{width:100%;background:rgba(255,255,255,.2);border-radius:999px;height:8px;margin-bottom:8px;overflow:hidden}
+    .progress-fill{height:100%;background:#fff;border-radius:999px;transition:width .5s ease}
+    .progress-text{text-align:center;font-size:14px;opacity:.9}
+    .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e5e7eb;margin-bottom:16px}
+    .card-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .card-title{font-weight:600}
+    .camera-btn{width:100%;background:linear-gradient(to right,#10b981,#059669);color:#fff;padding:16px;border-radius:12px;font-weight:600;font-size:18px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 4px 6px rgba(16,185,129,.3);margin-bottom:16px}
+    .camera-btn:hover{background:linear-gradient(to right,#059669,#047857)}
+    .quick-menu{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .quick-btn{background:#fff;padding:16px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e5e7eb;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+    .quick-btn:hover{background:#f9fafb}
+    .bottom-nav{background:#fff;border-top:1px solid #e5e7eb;position:fixed;bottom:0;left:0;right:0}
+    .bottom-nav-content{max-width:448px;margin:0 auto;padding:8px 16px}
+    .nav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    .nav-btn{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:8px;background:none;border:none;cursor:pointer;color:#6b7280}
+    .nav-btn.active{color:#10b981;background:#f0fdf4}
+    .nav-label{font-size:12px;margin-top:4px}
+    .camera-container{text-align:center;margin-bottom:16px}
+    .camera-video{width:100%;height:256px;background:#000;border-radius:12px;position:relative;overflow:hidden}
+    .camera-placeholder{background:#f3f4f6;border-radius:12px;padding:32px;margin-bottom:16px;display:flex;flex-direction:column;align-items:center;gap:16px;color:#6b7280}
+    .demo-section{background:#eff6ff;padding:16px;border-radius:12px;margin-bottom:16px}
+    .demo-btn{width:100%;background:#fff;border:1px solid #bfdbfe;padding:12px;border-radius:8px;text-align:left;cursor:pointer;margin-bottom:8px}
+    .demo-btn:hover{background:#dbeafe}
+    .recognition-result{background:#fff;border-radius:12px;padding:16px;border:2px solid #bbf7d0;margin-top:16px}
+    .result-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#166534}
+    .confidence-badge{background:#dcfce7;color:#166534;padding:4px 8px;border-radius:4px;font-size:12px}
+    .disposal-item{background:#f9fafb;padding:12px;border-radius:8px;margin-bottom:12px}
+    .disposal-method{display:inline-block;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:500;margin-top:4px}
+    .method-recycle{background:#dcfce7;color:#166534}
+    .method-general{background:#f3f4f6;color:#374151}
+    .tips-section{background:#fefce8;padding:12px;border-radius:8px;margin-top:16px}
+    .tips-content{display:flex;align-items:flex-start;gap:8px;color:#92400e}
+    .points-earned{display:flex;align-items:center;justify-content:center;gap:8px;color:#10b981;font-weight:500;margin-top:16px}
+    .schedule-grid{display:grid;gap:16px}
+    .schedule-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px}
+    .schedule-recycle{background:#f0fdf4}
+    .schedule-general{background:#f9fafb}
+    .schedule-food{background:#fefce8}
+    .schedule-info{display:flex;align-items:center;gap:12px}
+    .guide-item{background:#fff;border-radius:12px;padding:16px;border:1px solid #e5e7eb;margin-bottom:12px}
+    .guide-title{font-weight:600;margin-bottom:8px}
+    .guide-plastic{color:#059669}.guide-paper{color:#1d4ed8}.guide-can{color:#6b7280}
+    .guide-list{font-size:14px;color:#6b7280}
+    .guide-list li{margin-bottom:4px}
+    .location-selector{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+    .location-modal{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .close-btn{background:none;border:none;font-size:20px;color:#6b7280;cursor:pointer}
+    .close-btn:hover{color:#374151}
+    .form-group{margin-bottom:12px}
+    .form-label{display:block;font-size:14px;font-weight:500;margin-bottom:8px}
+    .form-select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
+    .form-select:focus{outline:none;border-color:#10b981;box-shadow:0 0 0 2px rgba(16,185,129,.2)}
+    .location-info{background:#eff6ff;padding:16px;border-radius:8px;margin:16px 0}
+    .location-info h3{font-weight:600;margin-bottom:8px}
+    .location-info-list{font-size:14px}
+    .location-info-list p{margin-bottom:4px}
+    .icon-wrapper{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* =========================
+      설정 (Cloud Vision 사용시)
+    ==========================*/
+    // 공개 저장소에 올리지 마세요.
+    const CLOUD_VISION_API_KEY = "AIzaSyBEylMMfX362fajnGcjR2E6vZipmzP9Tuw";
+    // 펩시 로고 감지 활성화 여부
+    const useCloudVision = true;
+
+    /* ===== 아이콘 (간단 SVG) ===== */
+    const CameraIcon = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>);
+    const MapPin = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>);
+    const Calendar = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>);
+    const Clock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>);
+    const Leaf = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 8c0 7-7 13-7 13s-7-6-7-13a7 7 0 1 1 14 0z"/></svg>);
+    const Star = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>);
+    const Info = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>);
+    const CheckCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>);
+    const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
+    const ArrowLeft = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>);
+    const Recycle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/><path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775L14.5 4"/><path d="M14 16.5L11.5 14 14 11.5"/><path d="M8.5 9.5 11 7 8.5 4.5"/></svg>);
+
+    /* ===== 데이터베이스(분리배출 안내) ===== */
+    const recognitionDatabase = {
+      "치킨박스": {
+        materials: ["종이박스", "기름때", "플라스틱 소스통"],
+        disposal: [
+          { item:"종이박스 (기름 묻음)", method:"일반쓰레기", reason:"기름때가 묻어 재활용 불가" },
+          { item:"플라스틱 소스통", method:"플라스틱 재활용", reason:"깨끗이 씻은 후 분리배출" },
+          { item:"포크/나이프", method:"플라스틱 재활용", reason:"일회용품도 깨끗하면 재활용 가능" }
+        ],
+        tips:"기름기가 많이 묻은 종이는 재활용이 어려워요. 소스통은 반드시 깨끗이 씻어주세요!"
+      },
+      "중국집 용기": {
+        materials:["플라스틱 용기","알루미늄 뚜껑","비닐봉지"],
+        disposal:[
+          { item:"검은 플라스틱 용기", method:"일반쓰레기", reason:"검은색 플라스틱은 재활용 불가" },
+          { item:"알루미늄 뚜껑", method:"캔류 재활용", reason:"깨끗이 씻은 후 분리배출" },
+          { item:"비닐봉지", method:"비닐류 재활용", reason:"음식물 제거 후 분리배출" }
+        ],
+        tips:"검은색 플라스틱은 재활용이 어려워요. 투명하거나 흰색 용기를 선택하는 것이 환경에 좋아요!"
+      },
+      "피자박스": {
+        materials:["종이박스","기름때","치즈 부스러기"],
+        disposal:[
+          { item:"기름 묻지 않은 윗부분", method:"종이류 재활용", reason:"깨끗한 부분은 재활용 가능" },
+          { item:"기름 묻은 아랫부분", method:"일반쓰레기", reason:"기름때로 인한 재활용 불가" }
+        ],
+        tips:"피자박스는 깨끗한 부분과 더러운 부분을 나누어 배출하세요!"
+      },
+      "콜라병": {
+        materials:["플라스틱 병","라벨","뚜껑"],
+        disposal:[
+          { item:"PET 플라스틱 병", method:"플라스틱 재활용", reason:"투명한 PET 소재로 재활용 가능" },
+          { item:"플라스틱 뚜껑", method:"플라스틱 재활용", reason:"분리해서 배출" },
+          { item:"라벨지", method:"플라스틱 재활용", reason:"붙인 채로 배출 가능" }
+        ],
+        tips:"내용물 완전히 비우고 헹군 뒤 배출하세요."
+      },
+      "맥주캔": {
+        materials:["알루미늄 캔"],
+        disposal:[{ item:"알루미늄 캔", method:"캔류 재활용", reason:"알루미늄은 무한 재활용 가능" }],
+        tips:"비우고 헹군 뒤 배출하세요."
+      },
+      "물병": {
+        materials:["플라스틱 병","라벨","뚜껑"],
+        disposal:[
+          { item:"PET 플라스틱 병", method:"플라스틱 재활용", reason:"대표적 고품질 재활용" },
+          { item:"플라스틱 뚜껑", method:"플라스틱 재활용", reason:"뚜껑도 함께 재활용 가능" },
+          { item:"라벨지", method:"플라스틱 재활용", reason:"제거하지 않아도 OK" }
+        ],
+        tips:"투명 PET는 라벨 제거 안 해도 됩니다."
+      },
+      /* 펩시 로고 감지 시 안내 */
+      "펩시 캔/병": {
+        materials:["알루미늄 캔 또는 PET","라벨","뚜껑"],
+        disposal:[
+          { item:"알루미늄 캔 또는 투명 PET", method:"재활용", reason:"캔은 캔류, PET는 플라스틱류" },
+          { item:"뚜껑", method:"플라스틱 재활용", reason:"분리 후 배출" },
+          { item:"라벨", method:"플라스틱 재활용", reason:"붙인 채로 배출 가능(가능하면 분리 권장)" }
+        ],
+        tips:"내용물 완전히 비우고 가볍게 헹군 뒤 배출하세요. 캔은 눌러 부피 줄이면 좋아요."
+      }
+    };
+
+    // COCO 클래스를 우리 항목으로 매핑
+    const itemMapping = {
+      'bottle': ['물병', '콜라병'],
+      'cup': ['중국집 용기'],
+      'pizza': ['피자박스'],
+      'can': ['맥주캔']
+    };
+
+    const EcoSortApp = () => {
+      const [currentView, setCurrentView] = useState('home');
+      const [selectedDistrict, setSelectedDistrict] = useState('서구');
+      const [selectedDong, setSelectedDong] = useState('도마동');
+      const [earthLevel, setEarthLevel] = useState(1);
+      const [ecoPoints, setEcoPoints] = useState(120);
+      const [dailyStreak, setDailyStreak] = useState(7);
+
+      const [cameraActive, setCameraActive] = useState(false);
+      const [recognitionResult, setRecognitionResult] = useState(null);
+      const [showLocationSelector, setShowLocationSelector] = useState(false);
+      const [model, setModel] = useState(null);
+      const [modelLoaded, setModelLoaded] = useState(false);
+      const [isDetecting, setIsDetecting] = useState(false);
+      const [capturedImage, setCapturedImage] = useState(null); // 촬영본 dataURL
+      const [showPreview, setShowPreview] = useState(false);    // 미리보기 표시 여부
+      const videoRef = useRef(null);
+
+      /* ---- TFJS 모델 로딩 ---- */
+      useEffect(() => {
+        (async () => {
+          try {
+            if (window.cocoSsd) {
+              const m = await window.cocoSsd.load();
+              setModel(m);
+              setModelLoaded(true);
+            } else {
+              setModelLoaded(true);
+            }
+          } catch (e) {
+            console.error("모델 로딩 실패:", e);
+            setModelLoaded(true);
+          }
+        })();
+      }, []);
+
+      /* ---- 카메라 제어 (시작/정지) ---- */
+      const startCamera = async () => {
+        setRecognitionResult(null);
+        setCapturedImage(null);
+        setShowPreview(false);
+        setCameraActive(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play().catch(()=>{});
+          }
+        } catch (err) {
+          console.error("카메라 접근 실패:", err);
+          alert("카메라 권한을 허용했는지 확인해주세요. (HTTPS 페이지에서 동작)");
+          setCameraActive(false);
+        }
+      };
+
+      const stopCamera = () => {
+        setCameraActive(false);
+        if (videoRef.current && videoRef.current.srcObject) {
+          videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+          videoRef.current.srcObject = null;
+        }
+      };
+
+      /* ---- 사진 촬영 → 감지 ---- */
+      const captureAndRecognize = async () => {
+        if (!videoRef.current || isDetecting) return;
+        setIsDetecting(true);
+
+        try {
+          // 1) 스냅샷 캡처
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth || 640;
+          canvas.height = videoRef.current.videoHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          const dataURL = canvas.toDataURL('image/jpeg');
+          setCapturedImage(dataURL);
+          setShowPreview(true);
+
+          // 2) 촬영 직후 카메라 정지
+          stopCamera();
+
+          // 3) Cloud Vision(선택: 펩시 로고) → 아니면 TFJS로 분석
+          if (useCloudVision && CLOUD_VISION_API_KEY && CLOUD_VISION_API_KEY !== "YOUR_GOOGLE_CLOUD_VISION_API_KEY") {
+            const base64Image = dataURL.split(',')[1];
+            const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${CLOUD_VISION_API_KEY}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [{
+                  image: { content: base64Image },
+                  features: [
+                    { type: 'LOGO_DETECTION', maxResults: 5 },
+                    { type: 'LABEL_DETECTION', maxResults: 5 }
+                  ]
+                }]
+              })
+            });
+            const json = await res.json();
+            const logos = json?.responses?.[0]?.logoAnnotations || [];
+            const labels = json?.responses?.[0]?.labelAnnotations || [];
+            const hasPepsi =
+              logos.some(l => (l.description || '').toLowerCase().includes('pepsi')) ||
+              labels.some(l => (l.description || '').toLowerCase().includes('pepsi'));
+
+            if (hasPepsi) {
+              showResult("펩시 캔/병", 0.99);
+              setIsDetecting(false);
+              return;
+            }
+            // 펩시가 아니면 TFJS로 폴백
+          }
+
+          if (model && modelLoaded) {
+            const preds = await model.detect(canvas);
+            if (preds.length) {
+              const best = preds.reduce((a,b)=> a.score>b.score?a:b);
+              const cls = best.class.toLowerCase();
+              let recognizedItem = null;
+              for (const [cocoClass, items] of Object.entries(itemMapping)) {
+                if (cls.includes(cocoClass) && items && items.length) {
+                  recognizedItem = items[Math.floor(Math.random()*items.length)];
+                  break;
+                }
+              }
+              if (!recognizedItem) recognizedItem = '물병';
+              showResult(recognizedItem, best.score);
+            } else {
+              noObjectResult();
+            }
+          } else {
+            alert("모델이 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.");
+          }
+        } catch (e) {
+          console.error(e);
+          alert("인식 중 오류가 발생했어요. 다시 시도해주세요.");
+        } finally {
+          setIsDetecting(false);
+        }
+      };
+
+      const noObjectResult = () => {
+        setRecognitionResult({
+          item: "객체 미감지",
+          confidence: 0,
+          disposal: [{ item:"인식되지 않은 물품", method:"다시 시도", reason:"물체를 화면 중앙에 크게 담고 밝은 곳에서 촬영하세요." }],
+          tips: "렌즈를 닦고, 흔들림 없이 촬영해보세요."
+        });
+      };
+
+      const showResult = (itemKey, score=0.9) => {
+        const data = recognitionDatabase[itemKey];
+        if (!data) return noObjectResult();
+        setRecognitionResult({ item: itemKey, confidence: score, ...data });
+        setEcoPoints(prev => {
+          const np = prev + 10;
+          if (np >= earthLevel * 100) setEarthLevel(e => e + 1);
+          return np;
+        });
+      };
+
+      /* ---- 기존 화면 로직 (일정/가이드/하단네비 등) ---- */
+      const locationDatabase = {
+        "동구": { dongs:["가양동","대별동","삼성동","성남동","소제동","신인동","용운동","용전동","장동","중앙동","판암동","홍도동","효동"],
+          schedule:{general:"일~금요일 20시 이후", recycle:"화, 목, 토요일", food:"일~금요일 20시 이후"},
+          rules:{noDisposal:"토요일은 재활용품만 배출 가능", location:"지정된 배출장소", contact:"동구청 환경위생과 042-251-4364"} },
+        "중구": { dongs:["대사동","대흥동","목동","문창동","부사동","산성동","석교동","용두동","유천동","은행동","중촌동","침산동","태평동"],
+          schedule:{general:"일~목요일 18시 이후", recycle:"월, 수, 금요일", food:"일~목요일 18시 이후"},
+          rules:{noDisposal:"금, 토, 일요일은 일반쓰레기 배출 금지", location:"문전배출 원칙", contact:"중구청 청소행정과 042-606-6234"} },
+        "서구": { dongs:["가수원동","가장동","갈마동","괴정동","내동","도마동","둔산동","만년동","매노동","복수동","변동","용문동","우명동","월평동","장안동","정림동","평촌동"],
+          schedule:{general:"일~목요일 18시 이후", recycle:"화, 목요일", food:"일~목요일 18시 이후"},
+          rules:{noDisposal:"금, 토요일은 모든 쓰레기 배출 금지", location:"내 집 앞 문전배출", contact:"서구청 자원순환과 042-288-3574"} },
+        "유성구": { dongs:["갑동","관평동","구성동","궁동","노은동","상대동","신성동","어은동","온천동","원신흥동","자운동","장대동","전민동","지족동","탑립동","학하동"],
+          schedule:{general:"월~금요일 19시 이후", recycle:"월, 수, 토요일", food:"월~금요일 19시 이후"},
+          rules:{noDisposal:"토요일은 재활용품만, 일요일은 모든 쓰레기 배출 금지", location:"공동주택 지정장소/단독 문전배출", contact:"유성구청 자원순환과 042-611-2174"} },
+        "대덕구": { dongs:["갈전동","대화동","덕암동","목상동","비래동","석봉동","송촌동","신탄진동","오정동","와동","읍내동","장동","중리동","평촌동"],
+          schedule:{general:"월~금요일 20시 이후", recycle:"월, 목요일", food:"월~금요일 20시 이후"},
+          rules:{noDisposal:"토·일요일은 모든 쓰레기 배출 금지", location:"지정된 수거장소", contact:"대덕구청 환경과 042-608-6924"} }
+      };
+
+      const getCurrentLocationData = () => locationDatabase[selectedDistrict];
+
+      const getTodayDisposal = () => {
+        const day = new Date().getDay(); // 0=일
+        if (selectedDistrict === "서구") {
+          if (day === 5 || day === 6) return { canDispose:false, message:"금, 토요일은 모든 쓰레기 배출 금지일입니다" };
+          const canRecycle = (day === 2 || day === 4);
+          return { canDispose:true, message: canRecycle ? "오늘은 재활용품 배출 가능일입니다!" : "오늘은 일반/음식물쓰레기 배출 가능일입니다" };
+        }
+        return { canDispose:true, message:"배출 가능일입니다" };
+      };
+
+      const renderHeader = () => (
+        <div className="header">
+          <div className="header-content">
+            {currentView !== 'home' && <button onClick={()=>setCurrentView('home')} className="back-btn"><ArrowLeft/>뒤로</button>}
+            <div className="logo"><Leaf/>에코소팅</div>
+            <button onClick={()=>setShowLocationSelector(true)} className="location"><MapPin/>{selectedDistrict} {selectedDong}</button>
+          </div>
+        </div>
+      );
+
+      const renderLocationSelector = () => (
+        <div className="location-selector">
+          <div className="location-modal">
+            <div className="modal-header">
+              <h2 style={{fontSize:'20px',fontWeight:'bold'}}>지역 설정</h2>
+              <button onClick={()=>setShowLocationSelector(false)} className="close-btn">✕</button>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">구 선택</label>
+              <select className="form-select" value={selectedDistrict}
+                onChange={(e)=>{ setSelectedDistrict(e.target.value); setSelectedDong(locationDatabase[e.target.value].dongs[0]); }}>
+                {Object.keys(locationDatabase).map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">동 선택</label>
+              <select className="form-select" value={selectedDong} onChange={(e)=>setSelectedDong(e.target.value)}>
+                {locationDatabase[selectedDistrict].dongs.map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            <div className="location-info">
+              <h3>선택된 지역의 배출 정보</h3>
+              <div className="location-info-list">
+                <p>• 일반쓰레기: {getCurrentLocationData().schedule.general}</p>
+                <p>• 재활용품: {getCurrentLocationData().schedule.recycle}</p>
+                <p>• 음식물쓰레기: {getCurrentLocationData().schedule.food}</p>
+                <p>• 특이사항: {getCurrentLocationData().rules.noDisposal}</p>
+                <p>• 배출장소: {getCurrentLocationData().rules.location}</p>
+                <p>• 문의전화: {getCurrentLocationData().rules.contact}</p>
+              </div>
+            </div>
+
+            <button className="camera-btn" onClick={()=>setShowLocationSelector(false)}>완료</button>
+          </div>
+        </div>
+      );
+
+      const renderHomeView = () => {
+        const disposalInfo = getTodayDisposal();
+        const progress = (ecoPoints % (earthLevel * 100)) / (earthLevel * 100) * 100;
+        return (
+          <div className="main-content">
+            <div className="earth-card">
+              <div className="earth-header">
+                <div>
+                  <div className="earth-level">레벨 {earthLevel}</div>
+                  <div style={{fontSize:'14px',opacity:.9}}>지구지킴이</div>
+                </div>
+                <div className="earth-points">
+                  <div className="points">{ecoPoints}</div>
+                  <div className="streak">{dailyStreak}일 연속</div>
+                </div>
+              </div>
+              <div className="earth-icon"><div className="earth-emoji">🌍</div></div>
+              <div className="progress-bar"><div className="progress-fill" style={{width:`${progress}%`}}/></div>
+              <div className="progress-text">다음 레벨까지 {(earthLevel*100)-(ecoPoints%(earthLevel*100))}점</div>
+            </div>
+
+            <div className="card">
+              <div className="card-header"><Calendar/><span className="card-title">오늘 배출 정보</span></div>
+              <div className={`disposal-info ${disposalInfo.canDispose ? 'disposal-allowed' : 'disposal-forbidden'}`}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  {disposalInfo.canDispose ? <CheckCircle/> : <AlertTriangle/>}
+                  <span>{disposalInfo.message}</span>
+                </div>
+              </div>
+            </div>
+
+            <button className="camera-btn" onClick={()=>setCurrentView('camera')}>
+              <CameraIcon/> 배달용기 분리배출 가이드
+            </button>
+
+            <div className="quick-menu">
+              <div className="quick-btn" onClick={()=>setCurrentView('schedule')}><Clock/><span>배출 일정</span></div>
+              <div className="quick-btn" onClick={()=>setCurrentView('guide')}><Info/><span>분리배출 가이드</span></div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderCameraView = () => (
+        <div className="main-content">
+          <div className="camera-container">
+            {showPreview && capturedImage ? (
+              <div className="camera-video">
+                <img src={capturedImage} alt="촬영 이미지" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'12px'}}/>
+              </div>
+            ) : cameraActive ? (
+              <div className="camera-video">
+                <video ref={videoRef} autoPlay playsInline style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              </div>
+            ) : (
+              <div className="camera-placeholder">
+                <CameraIcon/>
+                <p>촬영 버튼을 눌러 사진을 찍고 인식해보세요</p>
+              </div>
+            )}
+
+            {!cameraActive && !showPreview && (
+              <button className="camera-btn" onClick={startCamera}>카메라 시작</button>
+            )}
+
+            {cameraActive && !showPreview && (
+              <>
+                <button className="camera-btn" onClick={captureAndRecognize} disabled={!modelLoaded || isDetecting}>
+                  {isDetecting ? "인식 중..." : "촬영하여 인식"}
+                </button>
+                <button className="quick-btn" style={{width:'100%',marginTop:'8px'}} onClick={stopCamera}>카메라 종료</button>
+              </>
+            )}
+
+            {showPreview && (
+              <button className="camera-btn" onClick={startCamera} style={{marginTop:'12px'}}>다시 촬영</button>
+            )}
+          </div>
+
+          <div className="demo-section">
+            <h3 style={{marginBottom:'12px',fontSize:'16px',fontWeight:'600'}}>🎯 데모 체험하기</h3>
+            <p style={{marginBottom:'12px',fontSize:'14px',color:'#6b7280'}}>아래 버튼으로 인식 결과를 체험해보세요</p>
+            <button className="demo-btn" onClick={()=>showResult('치킨박스',0.92)}>🍗 치킨박스 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('중국집 용기',0.94)}>🥡 중국집 배달용기 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('피자박스',0.93)}>🍕 피자박스 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('펩시 캔/병',0.99)}>🥤 (테스트) 펩시 인식하기</button>
+          </div>
+
+          {recognitionResult && (
+            <div className="recognition-result">
+              <div className="result-header">
+                <CheckCircle/>
+                <span style={{fontWeight:'600'}}>"{recognitionResult.item}" 인식 완료</span>
+                <span className="confidence-badge">{Math.round(recognitionResult.confidence*100)}% 정확도</span>
+              </div>
+
+              <div style={{marginBottom:'12px'}}>
+                <h4 style={{fontSize:'14px',fontWeight:'600',marginBottom:'8px'}}>분리배출 방법:</h4>
+                {recognitionResult.disposal.map((d,i)=>(
+                  <div key={i} className="disposal-item">
+                    <div style={{fontWeight:'500',marginBottom:'4px'}}>{d.item}</div>
+                    <div className={`disposal-method ${d.method.includes('재활용')?'method-recycle':'method-general'}`}>{d.method}</div>
+                    <div style={{fontSize:'12px',color:'#6b7280',marginTop:'4px'}}>{d.reason}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="tips-section">
+                <div className="tips-content">
+                  <Info style={{width:'16px',height:'16px',flexShrink:0}}/>
+                  <span style={{fontSize:'14px'}}>{recognitionResult.tips}</span>
+                </div>
+              </div>
+
+              <div className="points-earned"><Star/><span>+10 에코포인트 획득!</span></div>
+            </div>
+          )}
+        </div>
+      );
+
+      const renderScheduleView = () => {
+        const locationData = getCurrentLocationData();
+        return (
+          <div className="main-content">
+            <div className="card">
+              <div className="card-header"><Calendar/><span className="card-title">{selectedDistrict} {selectedDong} 배출 일정</span></div>
+              <div className="schedule-grid">
+                <div className="schedule-item schedule-general">
+                  <div className="schedule-info">
+                    <div><div style={{fontWeight:'600'}}>일반쓰레기</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.general}</div></div>
+                  </div>
+                </div>
+                <div className="schedule-item schedule-recycle">
+                  <div className="schedule-info">
+                    <div><div style={{fontWeight:'600'}}>재활용품</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.recycle}</div></div>
+                  </div>
+                </div>
+                <div className="schedule-item schedule-food">
+                  <div className="schedule-info">
+                    <div><div style={{fontWeight:'600'}}>음식물쓰레기</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.food}</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{background:'#fef2f2',padding:'12px',borderRadius:'8px',marginTop:'16px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',color:'#dc2626'}}><AlertTriangle style={{width:'16px',height:'16px'}}/><span style={{fontSize:'14px',fontWeight:'500'}}>{locationData.rules.noDisposal}</span></div>
+              </div>
+              <div style={{background:'#eff6ff',padding:'12px',borderRadius:'8px',marginTop:'8px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',color:'#1d4ed8'}}><Info style={{width:'16px',height:'16px'}}/>
+                  <div style={{fontSize:'14px'}}>
+                    <div>배출장소: {locationData.rules.location}</div>
+                    <div>문의전화: {locationData.rules.contact}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderGuideView = () => (
+        <div className="main-content">
+          <div className="guide-item">
+            <div className="guide-title guide-plastic"><Recycle style={{width:'20px',height:'20px',display:'inline',marginRight:'8px'}}/>플라스틱류</div>
+            <ul className="guide-list">
+              <li>• 음료수병, 생수병 (뚜껑 분리)</li>
+              <li>• 샴푸/세제 용기 (내용물 완전 제거)</li>
+              <li>• 투명 일회용 용기</li>
+              <li>❌ 검은색 플라스틱, 스티로폼</li>
+            </ul>
+          </div>
+          <div className="guide-item">
+            <div className="guide-title guide-paper">📄 종이류</div>
+            <ul className="guide-list">
+              <li>• 신문/책/잡지</li>
+              <li>• 골판지 (테이프·철핀 제거)</li>
+              <li>• 우유팩/음료팩 (헹군 뒤)</li>
+              <li>❌ 기름 묻은 종이, 코팅지</li>
+            </ul>
+          </div>
+          <div className="guide-item">
+            <div className="guide-title guide-can">🥫 캔류</div>
+            <ul className="guide-list">
+              <li>• 음료·맥주캔</li>
+              <li>• 참치·과일캔 (내용물 제거)</li>
+              <li>• 알루미늄 호일</li>
+              <li>❌ 페인트통, 살충제통</li>
+            </ul>
+          </div>
+        </div>
+      );
+
+      const renderBottomNav = () => (
+        <div className="bottom-nav">
+          <div className="bottom-nav-content">
+            <div className="nav-grid">
+              <button className={`nav-btn ${currentView==='home'?'active':''}`} onClick={()=>setCurrentView('home')}>
+                <div className="icon-wrapper"><Leaf/></div><span className="nav-label">홈</span>
+              </button>
+              <button className={`nav-btn ${currentView==='camera'?'active':''}`} onClick={()=>setCurrentView('camera')}>
+                <div className="icon-wrapper"><CameraIcon/></div><span className="nav-label">인식</span>
+              </button>
+              <button className={`nav-btn ${currentView==='schedule'?'active':''}`} onClick={()=>setCurrentView('schedule')}>
+                <div className="icon-wrapper"><Calendar/></div><span className="nav-label">일정</span>
+              </button>
+              <button className={`nav-btn ${currentView==='guide'?'active':''}`} onClick={()=>setCurrentView('guide')}>
+                <div className="icon-wrapper"><Info/></div><span className="nav-label">가이드</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+
+      const renderCurrentView = () => {
+        switch (currentView) {
+          case 'camera': return renderCameraView();
+          case 'schedule': return renderScheduleView();
+          case 'guide': return renderGuideView();
+          default: return renderHomeView();
+        }
+      };
+
+      return (
+        <div className="container">
+          {renderHeader()}
+          {renderCurrentView()}
+          {renderBottomNav()}
+          {showLocationSelector && renderLocationSelector()}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<EcoSortApp />);
+  </script>
+</body>
+</html>
