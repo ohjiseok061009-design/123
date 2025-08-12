@@ -46,7 +46,7 @@
     .quick-btn:hover{background:#f9fafb}
     .bottom-nav{background:#fff;border-top:1px solid #e5e7eb;position:fixed;bottom:0;left:0;right:0}
     .bottom-nav-content{max-width:448px;margin:0 auto;padding:8px 16px}
-    .nav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
     .nav-btn{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:8px;background:none;border:none;cursor:pointer;color:#6b7280}
     .nav-btn.active{color:#10b981;background:#f0fdf4}
     .nav-label{font-size:12px;margin-top:4px}
@@ -63,6 +63,7 @@
     .disposal-method{display:inline-block;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:500;margin-top:4px}
     .method-recycle{background:#dcfce7;color:#166534}
     .method-general{background:#f3f4f6;color:#374151}
+    .method-prohibited{background:#fecaca;color:#dc2626}
     .tips-section{background:#fefce8;padding:12px;border-radius:8px;margin-top:16px}
     .tips-content{display:flex;align-items:flex-start;gap:8px;color:#92400e}
     .points-earned{display:flex;align-items:center;justify-content:center;gap:8px;color:#10b981;font-weight:500;margin-top:16px}
@@ -74,9 +75,13 @@
     .schedule-info{display:flex;align-items:center;gap:12px}
     .guide-item{background:#fff;border-radius:12px;padding:16px;border:1px solid #e5e7eb;margin-bottom:12px}
     .guide-title{font-weight:600;margin-bottom:8px}
-    .guide-plastic{color:#059669}.guide-paper{color:#1d4ed8}.guide-can{color:#6b7280}
+    .guide-plastic{color:#059669}.guide-paper{color:#1d4ed8}.guide-can{color:#6b7280}.guide-prohibited{color:#dc2626}
     .guide-list{font-size:14px;color:#6b7280}
     .guide-list li{margin-bottom:4px}
+    .prohibited-section{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:16px}
+    .prohibited-header{color:#dc2626;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .prohibited-list{font-size:14px;color:#7f1d1d}
+    .prohibited-list li{margin-bottom:4px}
     .location-selector{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
     .location-modal{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto}
     .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -91,6 +96,7 @@
     .location-info-list{font-size:14px}
     .location-info-list p{margin-bottom:4px}
     .icon-wrapper{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+    .prohibited-item{background:#fef2f2;padding:8px 12px;border-radius:6px;margin-bottom:6px;border-left:3px solid #dc2626;display:flex;align-items:center;gap:8px;font-size:13px}
   </style>
 </head>
 <body>
@@ -106,7 +112,7 @@
     const CLOUD_VISION_API_KEY = "AIzaSyBEylMMfX362fajnGcjR2E6vZipmzP9Tuw";
     // 펩시 로고 감지 활성화 여부
     const useCloudVision = true;
-    
+
     /* ===== 아이콘 (간단 SVG) ===== */
     const CameraIcon = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>);
     const MapPin = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>);
@@ -119,7 +125,10 @@
     const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
     const ArrowLeft = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>);
     const Recycle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/><path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775L14.5 4"/><path d="M14 16.5L11.5 14 14 11.5"/><path d="M8.5 9.5 11 7 8.5 4.5"/></svg>);
-  
+    const XCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>);
+    const ShieldAlert = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
+
+    /* ===== 데이터베이스(분리배출 안내) ===== */
     const recognitionDatabase = {
       "치킨박스": {
         materials: ["종이박스", "기름때", "플라스틱 소스통"],
@@ -156,6 +165,11 @@
         ],
         tips:"내용물 완전히 비우고 헹군 뒤 배출하세요."
       },
+      "맥주캔": {
+        materials:["알루미늄 캔"],
+        disposal:[{ item:"알루미늄 캔", method:"캔류 재활용", reason:"알루미늄은 무한 재활용 가능" }],
+        tips:"비우고 헹군 뒤 배출하세요."
+      },
       "물병": {
         materials:["플라스틱 병","라벨","뚜껑"],
         disposal:[
@@ -164,10 +178,20 @@
           { item:"라벨지", method:"플라스틱 재활용", reason:"제거하지 않아도 OK" }
         ],
         tips:"투명 PET는 라벨 제거 안 해도 됩니다."
+      },
+      /* 펩시 로고 감지 시 안내 */
+      "펩시 캔/병": {
+        materials:["알루미늄 캔 또는 PET","라벨","뚜껑"],
+        disposal:[
+          { item:"알루미늄 캔 또는 투명 PET", method:"재활용", reason:"캔은 캔류, PET는 플라스틱류" },
+          { item:"뚜껑", method:"플라스틱 재활용", reason:"분리 후 배출" },
+          { item:"라벨", method:"플라스틱 재활용", reason:"붙인 채로 배출 가능(가능하면 분리 권장)" }
+        ],
+        tips:"내용물 완전히 비우고 가볍게 헹군 뒤 배출하세요. 캔은 눌러 부피 줄이면 좋아요."
       }
     };
 
-     // COCO 클래스를 우리 항목으로 매핑
+    // COCO 클래스를 우리 항목으로 매핑
     const itemMapping = {
       'bottle': ['물병', '콜라병'],
       'cup': ['중국집 용기'],
@@ -175,7 +199,7 @@
       'can': ['맥주캔']
     };
 
-        const EcoSortApp = () => {
+    const EcoSortApp = () => {
       const [currentView, setCurrentView] = useState('home');
       const [selectedDistrict, setSelectedDistrict] = useState('서구');
       const [selectedDong, setSelectedDong] = useState('도마동');
@@ -338,74 +362,79 @@
         });
       };
 
-    // 지역 데이터베이스
-    const locationDatabase = {
-      "동구": { 
-        dongs:["가양동","대별동","삼성동","성남동","소제동","신인동","용운동","용전동","장동","중앙동","판암동","홍도동","효동"],
-        schedule:{general:"일~금요일 20시 이후", recycle:"화, 목, 토요일", food:"일~금요일 20시 이후"},
-        rules:{noDisposal:"토요일은 재활용품만 배출 가능", location:"지정된 배출장소", contact:"동구청 환경위생과 042-251-4364"},
-        bannedItems:[
-          "기름·음식물로 오염된 종이/비닐/용기",
-          "깨진 유리·도자기(일반쓰레기)",
-          "폐건전지·형광등·폐의약품(전용수거함 이용)",
-          "가스/살충제/페인트 등 위험 용기",
-          "PVC·고무장갑·장난감 등 혼합재질",
-          "스티로폼(오염 심한 경우)"
-        ]
-      },
-      "중구": { 
-        dongs:["대사동","대흥동","목동","문창동","부사동","산성동","석교동","용두동","유천동","은행동","중촌동","침산동","태평동"],
-        schedule:{general:"일~목요일 18시 이후", recycle:"월, 수, 금요일", food:"일~목요일 18시 이후"},
-        rules:{noDisposal:"금, 토, 일요일은 일반쓰레기 배출 금지", location:"문전배출 원칙", contact:"중구청 청소행정과 042-606-6234"},
-        bannedItems:[
-          "일회용 기저귀·위생용품",
-          "유리 파편·거울·도자기류",
-          "폐건전지·형광등·온도계 등 유해폐기물",
-          "폐유·페인트 잔여물",
-          "세척되지 않은 배달용기",
-          "캔/병에 담긴 내용물 미제거"
-        ]
-      },
-      "서구": { 
-        dongs:["가수원동","가장동","갈마동","괴정동","내동","도마동","둔산동","만년동","매노동","복수동","변동","용문동","우명동","월평동","장안동","정림동","평촌동"],
-        schedule:{general:"일~목요일 18시 이후", recycle:"화, 목요일", food:"일~목요일 18시 이후"},
-        rules:{noDisposal:"금, 토요일은 모든 쓰레기 배출 금지", location:"내 집 앞 문전배출", contact:"서구청 자원순환과 042-288-3574"},
-        bannedItems:[
-          "검은색/불투명 플라스틱(분리배출 불가)",
-          "음식물 남은 PET·PP 용기",
-          "스티커·테이프 부착된 골판지",
-          "폐건전지·배터리·휴대폰",
-          "형광등·LED 램프(전용함)",
-          "유리 파손물·세라믹"
-        ]
-      },
-      "유성구": { 
-        dongs:["갑동","관평동","구성동","궁동","노은동","상대동","신성동","어은동","온천동","원신흥동","자운동","장대동","전민동","지족동","탑립동","학하동"],
-        schedule:{general:"월~금요일 19시 이후", recycle:"월, 수, 토요일", food:"월~금요일 19시 이후"},
-        rules:{noDisposal:"토요일은 재활용품만, 일요일은 모든 쓰레기 배출 금지", location:"공동주택 지정장소/단독 문전배출", contact:"유성구청 자원순환과 042-611-2174"},
-        bannedItems:[
-          "오염 심한 종이팩·일회용 컵",
-          "라이터·가스용기·스프레이형 살충제",
-          "페인트통·접착제 용기",
-          "폐의약품·주사기류",
-          "고무·가죽 제품",
-          "혼합재질로 분리 불가한 용기"
-        ]
-      },
-      "대덕구": { 
-        dongs:["갈전동","대화동","덕암동","목상동","비래동","석봉동","송촌동","신탄진동","오정동","와동","읍내동","장동","중리동","평촌동"],
-        schedule:{general:"월~금요일 20시 이후", recycle:"월, 목요일", food:"월~금요일 20시 이후"},
-        rules:{noDisposal:"토·일요일은 모든 쓰레기 배출 금지", location:"지정된 수거장소", contact:"대덕구청 환경과 042-608-6924"},
-        bannedItems:[
-          "세척되지 않은 배달·일회용 용기",
-          "깨진 강화유리·거울·도자기",
-          "배터리·형광등·폐의약품",
-          "유해화학물 용기(잔여물 포함)",
-          "방한장갑·고무장갑·우비",
-          "스티로폼(라면국물 등 오염)"
-        ]
-      }
-    };
+      /* ---- 지자체별 금지 물품 데이터베이스 ---- */
+      const locationDatabase = {
+        "동구": { 
+          dongs:["가양동","대별동","삼성동","성남동","소제동","신인동","용운동","용전동","장동","중앙동","판암동","홍도동","효동"],
+          schedule:{general:"일~금요일 20시 이후", recycle:"화, 목, 토요일", food:"일~금요일 20시 이후"},
+          rules:{noDisposal:"토요일은 재활용품만 배출 가능", location:"지정된 배출장소", contact:"동구청 환경위생과 042-251-4364"},
+          prohibited: [
+            "전자제품 (TV, 냉장고, 에어컨 등) - 대형폐기물 신고 필수",
+            "의료폐기물 (주사기, 약품 등) - 병원 반납",
+            "위험물질 (농약, 페인트, 배터리) - 전문업체 처리",
+            "대형가구 - 대형폐기물 신고 후 배출",
+            "건설폐기물 (타일, 벽돌, 시멘트) - 건설폐기물 처리업체",
+            "석면 함유 물질 - 전문업체 의뢰 필수"
+          ],
+          specialRules: "동구는 아파트 단지 내 무단투기 시 과태료 50만원 부과"
+        },
+        "중구": { 
+          dongs:["대사동","대흥동","목동","문창동","부사동","산성동","석교동","용두동","유천동","은행동","중촌동","침산동","태평동"],
+          schedule:{general:"일~목요일 18시 이후", recycle:"월, 수, 금요일", food:"일~목요일 18시 이후"},
+          rules:{noDisposal:"금, 토, 일요일은 일반쓰레기 배출 금지", location:"문전배출 원칙", contact:"중구청 청소행정과 042-606-6234"},
+          prohibited: [
+            "음식물쓰레기 (동물뼈, 조개껍질, 견과류 껍질) - 일반쓰레기",
+            "일회용 기저귀 - 별도 봉투 사용",
+            "반려동물 배설물 - 전용봉투 사용 후 일반쓰레기",
+            "형광등, LED전구 - 동 주민센터 수거함 이용",
+            "스프레이 캔 (내용물 완전 제거되지 않은 것)",
+            "라이터, 부탄가스 - 내용물 완전 제거 후 캔류"
+          ],
+          specialRules: "중구는 상업지역 배출시간 위반 시 과태료 30만원"
+        },
+        "서구": { 
+          dongs:["가수원동","가장동","갈마동","괴정동","내동","도마동","둔산동","만년동","매노동","복수동","변동","용문동","우명동","월평동","장안동","정림동","평촌동"],
+          schedule:{general:"일~목요일 18시 이후", recycle:"화, 목요일", food:"일~목요일 18시 이후"},
+          rules:{noDisposal:"금, 토요일은 모든 쓰레기 배출 금지", location:"내 집 앞 문전배출", contact:"서구청 자원순환과 042-288-3574"},
+          prohibited: [
+            "검은색 비닐봉지 사용 금지 - 투명/반투명만 허용",
+            "음식물쓰레기에 이쑤시개, 포장지 혼합 금지",
+            "재활용품 이물질 제거 불완전 시 수거 거부",
+            "대형폐기물 스티커 없는 가구류",
+            "폐식용유 (따로 모아서 동 주민센터 배출)",
+            "폐의약품 - 약국 또는 보건소 반납"
+          ],
+          specialRules: "서구는 쓰레기 분리배출 위반 시 계도 1회 후 과태료 부과"
+        },
+        "유성구": { 
+          dongs:["갑동","관평동","구성동","궁동","노은동","상대동","신성동","어은동","온천동","원신흥동","자운동","장대동","전민동","지족동","탑립동","학하동"],
+          schedule:{general:"월~금요일 19시 이후", recycle:"월, 수, 토요일", food:"월~금요일 19시 이후"},
+          rules:{noDisposal:"토요일은 재활용품만, 일요일은 모든 쓰레기 배출 금지", location:"공동주택 지정장소/단독 문전배출", contact:"유성구청 자원순환과 042-611-2174"},
+          prohibited: [
+            "연구실 폐기물 (화학물질, 실험도구) - 전문업체 처리",
+            "대학교 기숙사 폐기물 - 별도 수거체계 이용",
+            "산업폐기물 (공장, 연구소) - 사업장폐기물로 처리",
+            "폐컴퓨터, 휴대폰 - 무료수거 서비스 이용",
+            "폐타이어 - 타이어 판매점 반납",
+            "석고보드, 단열재 - 건설폐기물 처리"
+          ],
+          specialRules: "유성구는 대학가 특성상 원룸 쓰레기 무단투기 집중 단속"
+        },
+        "대덕구": { 
+          dongs:["갈전동","대화동","덕암동","목상동","비래동","석봉동","송촌동","신탄진동","오정동","와동","읍내동","장동","중리동","평촌동"],
+          schedule:{general:"월~금요일 20시 이후", recycle:"월, 목요일", food:"월~금요일 20시 이후"},
+          rules:{noDisposal:"토·일요일은 모든 쓰레기 배출 금지", location:"지정된 수거장소", contact:"대덕구청 환경과 042-608-6924"},
+          prohibited: [
+            "공단 산업폐기물 - 사업장폐기물 처리업체 이용",
+            "실험실 폐액 - 전문 처리업체 의뢰",
+            "폐농약, 농업용 비닐 - 농협 수거함 이용",
+            "석면 슬레이트 - 석면 전문 철거업체",
+            "폐오일 (자동차, 기계) - 정비소 반납",
+            "폐배터리 (자동차용) - 자동차 정비업소"
+          ],
+          specialRules: "대덕구는 연구단지 특성상 화학폐기물 무단투기 엄중 처벌"
+        }
+      };
 
       const getCurrentLocationData = () => locationDatabase[selectedDistrict];
 
@@ -464,6 +493,25 @@
               </div>
             </div>
 
+            {/* 금지 물품 섹션 */}
+            <div className="prohibited-section">
+              <div className="prohibited-header">
+                <ShieldAlert style={{width:'20px',height:'20px'}}/>
+                배출 금지 물품
+              </div>
+              <div className="prohibited-list">
+                {getCurrentLocationData().prohibited.slice(0, 3).map((item, index) => (
+                  <div key={index} className="prohibited-item">
+                    <XCircle style={{width:'16px',height:'16px',color:'#dc2626',flexShrink:0}}/>
+                    {item}
+                  </div>
+                ))}
+                <p style={{fontSize:'12px',color:'#7f1d1d',marginTop:'8px'}}>
+                  {getCurrentLocationData().specialRules}
+                </p>
+              </div>
+            </div>
+
             <button className="camera-btn" onClick={()=>setShowLocationSelector(false)}>완료</button>
           </div>
         </div>
@@ -505,8 +553,10 @@
             </button>
 
             <div className="quick-menu">
+              <div className="quick-btn" onClick={()=>setCurrentView('camera')}><CameraIcon/><span>AI 인식</span></div>
               <div className="quick-btn" onClick={()=>setCurrentView('schedule')}><Clock/><span>배출 일정</span></div>
               <div className="quick-btn" onClick={()=>setCurrentView('guide')}><Info/><span>분리배출 가이드</span></div>
+              <div className="quick-btn" onClick={()=>setCurrentView('prohibited')}><ShieldAlert/><span>금지 물품</span></div>
             </div>
           </div>
         );
@@ -570,7 +620,7 @@
                 {recognitionResult.disposal.map((d,i)=>(
                   <div key={i} className="disposal-item">
                     <div style={{fontWeight:'500',marginBottom:'4px'}}>{d.item}</div>
-                    <div className={`disposal-method ${d.method.includes('재활용')?'method-recycle':'method-general'}`}>{d.method}</div>
+                    <div className={`disposal-method ${d.method.includes('재활용')?'method-recycle':d.method.includes('금지')?'method-prohibited':'method-general'}`}>{d.method}</div>
                     <div style={{fontSize:'12px',color:'#6b7280',marginTop:'4px'}}>{d.reason}</div>
                   </div>
                 ))}
@@ -629,6 +679,61 @@
         );
       };
 
+      const renderProhibitedView = () => {
+        const locationData = getCurrentLocationData();
+        return (
+          <div className="main-content">
+            <div className="card">
+              <div className="card-header">
+                <ShieldAlert/>
+                <span className="card-title">{selectedDistrict} 배출 금지 물품</span>
+              </div>
+              
+              <div className="prohibited-section">
+                <div className="prohibited-header">
+                  <XCircle style={{width:'20px',height:'20px'}}/>
+                  절대 일반쓰레기로 배출 금지
+                </div>
+                <div className="prohibited-list">
+                  {locationData.prohibited.map((item, index) => (
+                    <div key={index} className="prohibited-item">
+                      <XCircle style={{width:'16px',height:'16px',color:'#dc2626',flexShrink:0}}/>
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{background:'#fffbeb',padding:'16px',borderRadius:'8px',marginTop:'16px'}}>
+                <div style={{display:'flex',alignItems:'flex-start',gap:'8px',color:'#92400e'}}>
+                  <AlertTriangle style={{width:'20px',height:'20px',flexShrink:0}}/>
+                  <div>
+                    <div style={{fontWeight:'600',marginBottom:'4px'}}>특별 주의사항</div>
+                    <p style={{fontSize:'14px'}}>{locationData.specialRules}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{background:'#f0fdf4',padding:'16px',borderRadius:'8px',marginTop:'16px'}}>
+                <div style={{display:'flex',alignItems:'flex-start',gap:'8px',color:'#166534'}}>
+                  <Info style={{width:'20px',height:'20px',flexShrink:0}}/>
+                  <div>
+                    <div style={{fontWeight:'600',marginBottom:'4px'}}>올바른 처리 방법</div>
+                    <p style={{fontSize:'14px'}}>
+                      • 대형폐기물: 각 구청 홈페이지에서 온라인 신고<br/>
+                      • 전자제품: 무료 수거 서비스 이용<br/>
+                      • 위험물질: 전문 처리업체 문의<br/>
+                      • 의료폐기물: 병원이나 약국 반납<br/>
+                      • 건설폐기물: 건설폐기물 처리업체 이용
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
       const renderGuideView = () => (
         <div className="main-content">
           <div className="guide-item">
@@ -658,6 +763,22 @@
               <li>❌ 페인트통, 살충제통</li>
             </ul>
           </div>
+
+          {/* 지역별 특별 안내 */}
+          <div className="guide-item">
+            <div className="guide-title guide-prohibited">
+              <XCircle style={{width:'20px',height:'20px',display:'inline',marginRight:'8px'}}/>
+              {selectedDistrict} 특별 주의사항
+            </div>
+            <ul className="guide-list">
+              {getCurrentLocationData().prohibited.slice(0, 4).map((item, index) => (
+                <li key={index} style={{color:'#dc2626'}}>❌ {item}</li>
+              ))}
+            </ul>
+            <div style={{marginTop:'12px',padding:'8px',background:'#fef2f2',borderRadius:'6px',fontSize:'13px',color:'#7f1d1d'}}>
+              💡 더 자세한 금지물품은 '금지 물품' 탭에서 확인하세요
+            </div>
+          </div>
         </div>
       );
 
@@ -677,6 +798,9 @@
               <button className={`nav-btn ${currentView==='guide'?'active':''}`} onClick={()=>setCurrentView('guide')}>
                 <div className="icon-wrapper"><Info/></div><span className="nav-label">가이드</span>
               </button>
+              <button className={`nav-btn ${currentView==='prohibited'?'active':''}`} onClick={()=>setCurrentView('prohibited')}>
+                <div className="icon-wrapper"><ShieldAlert/></div><span className="nav-label">금지물품</span>
+              </button>
             </div>
           </div>
         </div>
@@ -687,6 +811,7 @@
           case 'camera': return renderCameraView();
           case 'schedule': return renderScheduleView();
           case 'guide': return renderGuideView();
+          case 'prohibited': return renderProhibitedView();
           default: return renderHomeView();
         }
       };
