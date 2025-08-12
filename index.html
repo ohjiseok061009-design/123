@@ -178,6 +178,178 @@
       }
     };
 
+     // COCO 클래스를 우리 항목으로 매핑
+    const itemMapping = {
+      'bottle': ['물병', '콜라병'],
+      'cup': ['중국집 용기'],
+      'pizza': ['피자박스'],
+      'can': ['맥주캔']
+    };
+
+        const EcoSortApp = () => {
+      const [currentView, setCurrentView] = useState('home');
+      const [selectedDistrict, setSelectedDistrict] = useState('서구');
+      const [selectedDong, setSelectedDong] = useState('도마동');
+      const [earthLevel, setEarthLevel] = useState(1);
+      const [ecoPoints, setEcoPoints] = useState(120);
+      const [dailyStreak, setDailyStreak] = useState(7);
+
+      const [cameraActive, setCameraActive] = useState(false);
+      const [recognitionResult, setRecognitionResult] = useState(null);
+      const [showLocationSelector, setShowLocationSelector] = useState(false);
+      const [model, setModel] = useState(null);
+      const [modelLoaded, setModelLoaded] = useState(false);
+      const [isDetecting, setIsDetecting] = useState(false);
+      const [capturedImage, setCapturedImage] = useState(null); // 촬영본 dataURL
+      const [showPreview, setShowPreview] = useState(false);    // 미리보기 표시 여부
+      const videoRef = useRef(null);
+
+      /* ---- TFJS 모델 로딩 ---- */
+      useEffect(() => {
+        (async () => {
+          try {
+            if (window.cocoSsd) {
+              const m = await window.cocoSsd.load();
+              setModel(m);
+              setModelLoaded(true);
+            } else {
+              setModelLoaded(true);
+            }
+          } catch (e) {
+            console.error("모델 로딩 실패:", e);
+            setModelLoaded(true);
+          }
+        })();
+      }, []);
+
+      /* ---- 카메라 제어 (시작/정지) ---- */
+      const startCamera = async () => {
+        setRecognitionResult(null);
+        setCapturedImage(null);
+        setShowPreview(false);
+        setCameraActive(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play().catch(()=>{});
+          }
+        } catch (err) {
+          console.error("카메라 접근 실패:", err);
+          alert("카메라 권한을 허용했는지 확인해주세요. (HTTPS 페이지에서 동작)");
+          setCameraActive(false);
+        }
+      };
+
+      const stopCamera = () => {
+        setCameraActive(false);
+        if (videoRef.current && videoRef.current.srcObject) {
+          videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+          videoRef.current.srcObject = null;
+        }
+      };
+
+      /* ---- 사진 촬영 → 감지 ---- */
+      const captureAndRecognize = async () => {
+        if (!videoRef.current || isDetecting) return;
+        setIsDetecting(true);
+
+        try {
+          // 1) 스냅샷 캡처
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth || 640;
+          canvas.height = videoRef.current.videoHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          const dataURL = canvas.toDataURL('image/jpeg');
+          setCapturedImage(dataURL);
+          setShowPreview(true);
+
+          // 2) 촬영 직후 카메라 정지
+          stopCamera();
+
+          // 3) Cloud Vision(선택: 펩시 로고) → 아니면 TFJS로 분석
+          if (useCloudVision && CLOUD_VISION_API_KEY && CLOUD_VISION_API_KEY !== "YOUR_GOOGLE_CLOUD_VISION_API_KEY") {
+            const base64Image = dataURL.split(',')[1];
+            const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${CLOUD_VISION_API_KEY}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [{
+                  image: { content: base64Image },
+                  features: [
+                    { type: 'LOGO_DETECTION', maxResults: 5 },
+                    { type: 'LABEL_DETECTION', maxResults: 5 }
+                  ]
+                }]
+              })
+            });
+            const json = await res.json();
+            const logos = json?.responses?.[0]?.logoAnnotations || [];
+            const labels = json?.responses?.[0]?.labelAnnotations || [];
+            const hasPepsi =
+              logos.some(l => (l.description || '').toLowerCase().includes('pepsi')) ||
+              labels.some(l => (l.description || '').toLowerCase().includes('pepsi'));
+
+            if (hasPepsi) {
+              showResult("펩시 캔/병", 0.99);
+              setIsDetecting(false);
+              return;
+            }
+            // 펩시가 아니면 TFJS로 폴백
+          }
+
+          if (model && modelLoaded) {
+            const preds = await model.detect(canvas);
+            if (preds.length) {
+              const best = preds.reduce((a,b)=> a.score>b.score?a:b);
+              const cls = best.class.toLowerCase();
+              let recognizedItem = null;
+              for (const [cocoClass, items] of Object.entries(itemMapping)) {
+                if (cls.includes(cocoClass) && items && items.length) {
+                  recognizedItem = items[Math.floor(Math.random()*items.length)];
+                  break;
+                }
+              }
+              if (!recognizedItem) recognizedItem = '물병';
+              showResult(recognizedItem, best.score);
+            } else {
+              noObjectResult();
+            }
+          } else {
+            alert("모델이 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.");
+          }
+        } catch (e) {
+          console.error(e);
+          alert("인식 중 오류가 발생했어요. 다시 시도해주세요.");
+        } finally {
+          setIsDetecting(false);
+        }
+      };
+
+      const noObjectResult = () => {
+        setRecognitionResult({
+          item: "객체 미감지",
+          confidence: 0,
+          disposal: [{ item:"인식되지 않은 물품", method:"다시 시도", reason:"물체를 화면 중앙에 크게 담고 밝은 곳에서 촬영하세요." }],
+          tips: "렌즈를 닦고, 흔들림 없이 촬영해보세요."
+        });
+      };
+
+      const showResult = (itemKey, score=0.9) => {
+        const data = recognitionDatabase[itemKey];
+        if (!data) return noObjectResult();
+        setRecognitionResult({ item: itemKey, confidence: score, ...data });
+        setEcoPoints(prev => {
+          const np = prev + 10;
+          if (np >= earthLevel * 100) setEarthLevel(e => e + 1);
+          return np;
+        });
+      };
+
+
     // 지역 데이터베이스
     const locationDatabase = {
       "동구": { 
@@ -247,106 +419,48 @@
       }
     };
 
-    const EcoSortApp = () => {
-      const [currentView, setCurrentView] = useState('home');
-      const [selectedDistrict, setSelectedDistrict] = useState('서구');
-      const [selectedDong, setSelectedDong] = useState('도마동');
-      const [earthLevel, setEarthLevel] = useState(1);
-      const [ecoPoints, setEcoPoints] = useState(120);
-      const [dailyStreak, setDailyStreak] = useState(7);
-      const [recognitionResult, setRecognitionResult] = useState(null);
-      const [showLocationSelector, setShowLocationSelector] = useState(false);
-
       const getCurrentLocationData = () => locationDatabase[selectedDistrict];
 
       const getTodayDisposal = () => {
-        const day = new Date().getDay();
+        const day = new Date().getDay(); // 0=일
         if (selectedDistrict === "서구") {
-          if (day === 5 || day === 6) return { canDispose: false, message: "금, 토요일은 모든 쓰레기 배출 금지일입니다" };
+          if (day === 5 || day === 6) return { canDispose:false, message:"금, 토요일은 모든 쓰레기 배출 금지일입니다" };
           const canRecycle = (day === 2 || day === 4);
-          return { 
-            canDispose: true, 
-            message: canRecycle ? "오늘은 재활용품 배출 가능일입니다!" : "오늘은 일반/음식물쓰레기 배출 가능일입니다" 
-          };
+          return { canDispose:true, message: canRecycle ? "오늘은 재활용품 배출 가능일입니다!" : "오늘은 일반/음식물쓰레기 배출 가능일입니다" };
         }
-        return { canDispose: true, message: "배출 가능일입니다" };
+        return { canDispose:true, message:"배출 가능일입니다" };
       };
 
-      const showResult = (itemKey, score = 0.9) => {
-        const data = recognitionDatabase[itemKey];
-        if (!data) return;
-        
-        setRecognitionResult({ 
-          item: itemKey, 
-          confidence: score, 
-          ...data 
-        });
-        
-        setEcoPoints(prev => {
-          const newPoints = prev + 10;
-          if (newPoints >= earthLevel * 100) {
-            setEarthLevel(e => e + 1);
-          }
-          return newPoints;
-        });
-      };
-
-      // 헤더 렌더링
       const renderHeader = () => (
         <div className="header">
           <div className="header-content">
-            {currentView !== 'home' && (
-              <button onClick={() => setCurrentView('home')} className="back-btn">
-                <ArrowLeft />뒤로
-              </button>
-            )}
-            <div className="logo">
-              <Leaf />
-              에코소팅
-            </div>
-            <button onClick={() => setShowLocationSelector(true)} className="location">
-              <MapPin />
-              {selectedDistrict} {selectedDong}
-            </button>
+            {currentView !== 'home' && <button onClick={()=>setCurrentView('home')} className="back-btn"><ArrowLeft/>뒤로</button>}
+            <div className="logo"><Leaf/>에코소팅</div>
+            <button onClick={()=>setShowLocationSelector(true)} className="location"><MapPin/>{selectedDistrict} {selectedDong}</button>
           </div>
         </div>
       );
 
-      // 지역 선택 모달
       const renderLocationSelector = () => (
         <div className="location-selector">
           <div className="location-modal">
             <div className="modal-header">
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>지역 설정</h2>
-              <button onClick={() => setShowLocationSelector(false)} className="close-btn">✕</button>
+              <h2 style={{fontSize:'20px',fontWeight:'bold'}}>지역 설정</h2>
+              <button onClick={()=>setShowLocationSelector(false)} className="close-btn">✕</button>
             </div>
 
             <div className="form-group">
               <label className="form-label">구 선택</label>
-              <select 
-                className="form-select" 
-                value={selectedDistrict}
-                onChange={(e) => {
-                  setSelectedDistrict(e.target.value);
-                  setSelectedDong(locationDatabase[e.target.value].dongs[0]);
-                }}
-              >
-                {Object.keys(locationDatabase).map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+              <select className="form-select" value={selectedDistrict}
+                onChange={(e)=>{ setSelectedDistrict(e.target.value); setSelectedDong(locationDatabase[e.target.value].dongs[0]); }}>
+                {Object.keys(locationDatabase).map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
             <div className="form-group">
               <label className="form-label">동 선택</label>
-              <select 
-                className="form-select" 
-                value={selectedDong} 
-                onChange={(e) => setSelectedDong(e.target.value)}
-              >
-                {locationDatabase[selectedDistrict].dongs.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+              <select className="form-select" value={selectedDong} onChange={(e)=>setSelectedDong(e.target.value)}>
+                {locationDatabase[selectedDistrict].dongs.map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
@@ -362,221 +476,164 @@
               </div>
             </div>
 
-            <button className="camera-btn" onClick={() => setShowLocationSelector(false)}>완료</button>
+            <button className="camera-btn" onClick={()=>setShowLocationSelector(false)}>완료</button>
           </div>
         </div>
       );
 
-      // 홈 화면
       const renderHomeView = () => {
         const disposalInfo = getTodayDisposal();
         const progress = (ecoPoints % (earthLevel * 100)) / (earthLevel * 100) * 100;
-        
         return (
           <div className="main-content">
             <div className="earth-card">
               <div className="earth-header">
                 <div>
                   <div className="earth-level">레벨 {earthLevel}</div>
-                  <div style={{ fontSize: '14px', opacity: .9 }}>지구지킴이</div>
+                  <div style={{fontSize:'14px',opacity:.9}}>지구지킴이</div>
                 </div>
                 <div className="earth-points">
                   <div className="points">{ecoPoints}</div>
                   <div className="streak">{dailyStreak}일 연속</div>
                 </div>
               </div>
-              <div className="earth-icon">
-                <div className="earth-emoji">🌍</div>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="progress-text">
-                다음 레벨까지 {(earthLevel * 100) - (ecoPoints % (earthLevel * 100))}점
-              </div>
+              <div className="earth-icon"><div className="earth-emoji">🌍</div></div>
+              <div className="progress-bar"><div className="progress-fill" style={{width:`${progress}%`}}/></div>
+              <div className="progress-text">다음 레벨까지 {(earthLevel*100)-(ecoPoints%(earthLevel*100))}점</div>
             </div>
 
             <div className="card">
-              <div className="card-header">
-                <Calendar />
-                <span className="card-title">오늘 배출 정보</span>
-              </div>
+              <div className="card-header"><Calendar/><span className="card-title">오늘 배출 정보</span></div>
               <div className={`disposal-info ${disposalInfo.canDispose ? 'disposal-allowed' : 'disposal-forbidden'}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {disposalInfo.canDispose ? <CheckCircle /> : <AlertTriangle />}
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  {disposalInfo.canDispose ? <CheckCircle/> : <AlertTriangle/>}
                   <span>{disposalInfo.message}</span>
                 </div>
               </div>
             </div>
 
-            <button className="camera-btn" onClick={() => setCurrentView('camera')}>
-              <CameraIcon /> 배달용기 분리배출 가이드
+            <button className="camera-btn" onClick={()=>setCurrentView('camera')}>
+              <CameraIcon/> 배달용기 분리배출 가이드
             </button>
 
             <div className="quick-menu">
-              <div className="quick-btn" onClick={() => setCurrentView('schedule')}>
-                <Clock />
-                <span>배출 일정</span>
-              </div>
-              <div className="quick-btn" onClick={() => setCurrentView('guide')}>
-                <Info />
-                <span>분리배출 가이드</span>
-              </div>
+              <div className="quick-btn" onClick={()=>setCurrentView('schedule')}><Clock/><span>배출 일정</span></div>
+              <div className="quick-btn" onClick={()=>setCurrentView('guide')}><Info/><span>분리배출 가이드</span></div>
             </div>
           </div>
         );
       };
 
-      // 카메라 화면
       const renderCameraView = () => (
         <div className="main-content">
           <div className="camera-container">
-            <div className="camera-placeholder">
-              <CameraIcon />
-              <p>촬영 버튼을 눌러 사진을 찍고 인식해보세요</p>
-              <p style={{ fontSize: '12px', color: '#9ca3af' }}>
-                실제 카메라 기능은 HTTPS 환경에서 동작합니다
-              </p>
-            </div>
+            {showPreview && capturedImage ? (
+              <div className="camera-video">
+                <img src={capturedImage} alt="촬영 이미지" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'12px'}}/>
+              </div>
+            ) : cameraActive ? (
+              <div className="camera-video">
+                <video ref={videoRef} autoPlay playsInline style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              </div>
+            ) : (
+              <div className="camera-placeholder">
+                <CameraIcon/>
+                <p>촬영 버튼을 눌러 사진을 찍고 인식해보세요</p>
+              </div>
+            )}
+
+            {!cameraActive && !showPreview && (
+              <button className="camera-btn" onClick={startCamera}>카메라 시작</button>
+            )}
+
+            {cameraActive && !showPreview && (
+              <>
+                <button className="camera-btn" onClick={captureAndRecognize} disabled={!modelLoaded || isDetecting}>
+                  {isDetecting ? "인식 중..." : "촬영하여 인식"}
+                </button>
+                <button className="quick-btn" style={{width:'100%',marginTop:'8px'}} onClick={stopCamera}>카메라 종료</button>
+              </>
+            )}
+
+            {showPreview && (
+              <button className="camera-btn" onClick={startCamera} style={{marginTop:'12px'}}>다시 촬영</button>
+            )}
           </div>
 
           <div className="demo-section">
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>
-              🎯 데모 체험하기
-            </h3>
-            <p style={{ marginBottom: '12px', fontSize: '14px', color: '#6b7280' }}>
-              아래 버튼으로 인식 결과를 체험해보세요
-            </p>
-            <button className="demo-btn" onClick={() => showResult('치킨박스', 0.92)}>
-              🍗 치킨박스 인식하기
-            </button>
-            <button className="demo-btn" onClick={() => showResult('중국집 용기', 0.94)}>
-              🥡 중국집 배달용기 인식하기
-            </button>
-            <button className="demo-btn" onClick={() => showResult('피자박스', 0.93)}>
-              🍕 피자박스 인식하기
-            </button>
-            <button className="demo-btn" onClick={() => showResult('콜라병', 0.95)}>
-              🥤 콜라병 인식하기
-            </button>
-            <button className="demo-btn" onClick={() => showResult('물병', 0.97)}>
-              💧 물병 인식하기
-            </button>
+            <h3 style={{marginBottom:'12px',fontSize:'16px',fontWeight:'600'}}>🎯 데모 체험하기</h3>
+            <p style={{marginBottom:'12px',fontSize:'14px',color:'#6b7280'}}>아래 버튼으로 인식 결과를 체험해보세요</p>
+            <button className="demo-btn" onClick={()=>showResult('치킨박스',0.92)}>🍗 치킨박스 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('중국집 용기',0.94)}>🥡 중국집 배달용기 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('피자박스',0.93)}>🍕 피자박스 인식하기</button>
+            <button className="demo-btn" onClick={()=>showResult('펩시 캔/병',0.99)}>🥤 (테스트) 펩시 인식하기</button>
           </div>
 
           {recognitionResult && (
             <div className="recognition-result">
               <div className="result-header">
-                <CheckCircle />
-                <span style={{ fontWeight: '600' }}>
-                  "{recognitionResult.item}" 인식 완료
-                </span>
-                <span className="confidence-badge">
-                  {Math.round(recognitionResult.confidence * 100)}% 정확도
-                </span>
+                <CheckCircle/>
+                <span style={{fontWeight:'600'}}>"{recognitionResult.item}" 인식 완료</span>
+                <span className="confidence-badge">{Math.round(recognitionResult.confidence*100)}% 정확도</span>
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                  분리배출 방법:
-                </h4>
-                {recognitionResult.disposal.map((d, i) => (
+              <div style={{marginBottom:'12px'}}>
+                <h4 style={{fontSize:'14px',fontWeight:'600',marginBottom:'8px'}}>분리배출 방법:</h4>
+                {recognitionResult.disposal.map((d,i)=>(
                   <div key={i} className="disposal-item">
-                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
-                      {d.item}
-                    </div>
-                    <div className={`disposal-method ${d.method.includes('재활용') ? 'method-recycle' : 'method-general'}`}>
-                      {d.method}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                      {d.reason}
-                    </div>
+                    <div style={{fontWeight:'500',marginBottom:'4px'}}>{d.item}</div>
+                    <div className={`disposal-method ${d.method.includes('재활용')?'method-recycle':'method-general'}`}>{d.method}</div>
+                    <div style={{fontSize:'12px',color:'#6b7280',marginTop:'4px'}}>{d.reason}</div>
                   </div>
                 ))}
               </div>
 
               <div className="tips-section">
                 <div className="tips-content">
-                  <Info style={{ width: '16px', height: '16px', flexShrink: 0 }} />
-                  <span style={{ fontSize: '14px' }}>{recognitionResult.tips}</span>
+                  <Info style={{width:'16px',height:'16px',flexShrink:0}}/>
+                  <span style={{fontSize:'14px'}}>{recognitionResult.tips}</span>
                 </div>
               </div>
 
-              <div className="points-earned">
-                <Star />
-                <span>+10 에코포인트 획득!</span>
-              </div>
+              <div className="points-earned"><Star/><span>+10 에코포인트 획득!</span></div>
             </div>
           )}
         </div>
       );
 
-      // 배출 일정 화면
       const renderScheduleView = () => {
         const locationData = getCurrentLocationData();
-        
         return (
           <div className="main-content">
             <div className="card">
-              <div className="card-header">
-                <Calendar />
-                <span className="card-title">{selectedDistrict} {selectedDong} 배출 일정</span>
-              </div>
+              <div className="card-header"><Calendar/><span className="card-title">{selectedDistrict} {selectedDong} 배출 일정</span></div>
               <div className="schedule-grid">
                 <div className="schedule-item schedule-general">
                   <div className="schedule-info">
-                    <div>
-                      <div style={{ fontWeight: '600' }}>일반쓰레기</div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {locationData.schedule.general}
-                      </div>
-                    </div>
+                    <div><div style={{fontWeight:'600'}}>일반쓰레기</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.general}</div></div>
                   </div>
                 </div>
                 <div className="schedule-item schedule-recycle">
                   <div className="schedule-info">
-                    <div>
-                      <div style={{ fontWeight: '600' }}>재활용품</div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {locationData.schedule.recycle}
-                      </div>
-                    </div>
+                    <div><div style={{fontWeight:'600'}}>재활용품</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.recycle}</div></div>
                   </div>
                 </div>
                 <div className="schedule-item schedule-food">
                   <div className="schedule-info">
-                    <div>
-                      <div style={{ fontWeight: '600' }}>음식물쓰레기</div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {locationData.schedule.food}
-                      </div>
-                    </div>
+                    <div><div style={{fontWeight:'600'}}>음식물쓰레기</div><div style={{fontSize:'14px',color:'#6b7280'}}>{locationData.schedule.food}</div></div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="card">
-              <div className="card-header">
-                <AlertTriangle />
-                <span className="card-title">지자체 금지·주의 품목</span>
+              <div style={{background:'#fef2f2',padding:'12px',borderRadius:'8px',marginTop:'16px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',color:'#dc2626'}}><AlertTriangle style={{width:'16px',height:'16px'}}/><span style={{fontSize:'14px',fontWeight:'500'}}>{locationData.rules.noDisposal}</span></div>
               </div>
-              <ul className="ban-list">
-                {locationData.bannedItems.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-              <div className="ban-note">
-                ※ 지침 요약입니다. 세부 규정은 해당 동 행정복지센터/지자체 공지에 따르세요.
-              </div>
-            </div>
-
-            <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1d4ed8' }}>
-                <Info style={{ width: '16px', height: '16px' }} />
-                <div style={{ fontSize: '14px' }}>
-                  <div>배출장소: {locationData.rules.location}</div>
-                  <div>문의전화: {locationData.rules.contact}</div>
+              <div style={{background:'#eff6ff',padding:'12px',borderRadius:'8px',marginTop:'8px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',color:'#1d4ed8'}}><Info style={{width:'16px',height:'16px'}}/>
+                  <div style={{fontSize:'14px'}}>
+                    <div>배출장소: {locationData.rules.location}</div>
+                    <div>문의전화: {locationData.rules.contact}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -584,32 +641,26 @@
         );
       };
 
-      // 가이드 화면
       const renderGuideView = () => (
         <div className="main-content">
           <div className="guide-item">
-            <div className="guide-title guide-plastic">
-              <Recycle style={{ width: '20px', height: '20px', display: 'inline', marginRight: '8px' }} />
-              플라스틱류
-            </div>
+            <div className="guide-title guide-plastic"><Recycle style={{width:'20px',height:'20px',display:'inline',marginRight:'8px'}}/>플라스틱류</div>
             <ul className="guide-list">
               <li>• 음료수병, 생수병 (뚜껑 분리)</li>
               <li>• 샴푸/세제 용기 (내용물 완전 제거)</li>
               <li>• 투명 일회용 용기</li>
-              <li>❌ 검은색 플라스틱, 스티로폼(오염 시)</li>
+              <li>❌ 검은색 플라스틱, 스티로폼</li>
             </ul>
           </div>
-          
           <div className="guide-item">
             <div className="guide-title guide-paper">📄 종이류</div>
             <ul className="guide-list">
               <li>• 신문/책/잡지</li>
               <li>• 골판지 (테이프·철핀 제거)</li>
               <li>• 우유팩/음료팩 (헹군 뒤)</li>
-              <li>❌ 코팅지·기름 묻은 종이</li>
+              <li>❌ 기름 묻은 종이, 코팅지</li>
             </ul>
           </div>
-          
           <div className="guide-item">
             <div className="guide-title guide-can">🥫 캔류</div>
             <ul className="guide-list">
@@ -622,45 +673,27 @@
         </div>
       );
 
-      // 하단 네비게이션
       const renderBottomNav = () => (
         <div className="bottom-nav">
           <div className="bottom-nav-content">
             <div className="nav-grid">
-              <button 
-                className={`nav-btn ${currentView === 'home' ? 'active' : ''}`} 
-                onClick={() => setCurrentView('home')}
-              >
-                <div className="icon-wrapper"><Leaf /></div>
-                <span className="nav-label">홈</span>
+              <button className={`nav-btn ${currentView==='home'?'active':''}`} onClick={()=>setCurrentView('home')}>
+                <div className="icon-wrapper"><Leaf/></div><span className="nav-label">홈</span>
               </button>
-              <button 
-                className={`nav-btn ${currentView === 'camera' ? 'active' : ''}`} 
-                onClick={() => setCurrentView('camera')}
-              >
-                <div className="icon-wrapper"><CameraIcon /></div>
-                <span className="nav-label">인식</span>
+              <button className={`nav-btn ${currentView==='camera'?'active':''}`} onClick={()=>setCurrentView('camera')}>
+                <div className="icon-wrapper"><CameraIcon/></div><span className="nav-label">인식</span>
               </button>
-              <button 
-                className={`nav-btn ${currentView === 'schedule' ? 'active' : ''}`} 
-                onClick={() => setCurrentView('schedule')}
-              >
-                <div className="icon-wrapper"><Calendar /></div>
-                <span className="nav-label">일정</span>
+              <button className={`nav-btn ${currentView==='schedule'?'active':''}`} onClick={()=>setCurrentView('schedule')}>
+                <div className="icon-wrapper"><Calendar/></div><span className="nav-label">일정</span>
               </button>
-              <button 
-                className={`nav-btn ${currentView === 'guide' ? 'active' : ''}`} 
-                onClick={() => setCurrentView('guide')}
-              >
-                <div className="icon-wrapper"><Info /></div>
-                <span className="nav-label">가이드</span>
+              <button className={`nav-btn ${currentView==='guide'?'active':''}`} onClick={()=>setCurrentView('guide')}>
+                <div className="icon-wrapper"><Info/></div><span className="nav-label">가이드</span>
               </button>
             </div>
           </div>
         </div>
       );
 
-      // 현재 화면 렌더링
       const renderCurrentView = () => {
         switch (currentView) {
           case 'camera': return renderCameraView();
@@ -680,7 +713,6 @@
       );
     };
 
-    // 앱 마운트
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<EcoSortApp />);
   </script>
